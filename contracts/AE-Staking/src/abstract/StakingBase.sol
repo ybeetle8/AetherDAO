@@ -330,7 +330,7 @@ abstract contract StakingBase is Ownable, IStaking {
             );
         }
 
-        emit BindReferral(user, _referrer);
+        emit ReferralBound(user, _referrer, block.timestamp);
     }
 
     function setRootAddress(address _rootAddress) external onlyOwner {

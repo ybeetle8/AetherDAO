@@ -183,9 +183,14 @@ interface IStaking {
     /**
      * @notice Emitted when referral relationship is bound
      * @param user User being referred
-     * @param parent Referrer address
+     * @param referrer Referrer address
+     * @param timestamp Binding timestamp
      */
-    event BindReferral(address indexed user, address indexed parent);
+    event ReferralBound(
+        address indexed user,
+        address indexed referrer,
+        uint256 timestamp
+    );
 
     /**
      * @notice Emitted when a user binds a friend account for direct reward
