@@ -61,6 +61,7 @@ abstract contract StakingBase is Ownable, IStaking {
     uint256 internal constant LIQUIDITY_SPLIT_DIVISOR = 2;
     uint256 internal constant POOL_PERCENTAGE_DIVISOR = 100;
     uint256 internal constant NETWORK_CHECK_INTERVAL = 1 minutes;
+    uint256 internal constant MIN_STAKE_AMOUNT = 100 ether;
     uint256 internal constant MAX_STAKE_LIMIT = 1000 ether;
     uint256 internal constant MAX_USER_TOTAL_STAKE = 10000 ether;
     uint8 internal constant MAX_REFERRAL_DEPTH = 30;
@@ -769,6 +770,10 @@ abstract contract StakingBase is Ownable, IStaking {
         }
     }
 
+    function getMinStakeAmount() external pure returns (uint256 minAmount) {
+        return MIN_STAKE_AMOUNT;
+    }
+
     // =========================================================================
     // TOKEN FUNCTIONS (Manual Implementation)
     // =========================================================================
@@ -1205,6 +1210,7 @@ abstract contract StakingBase is Ownable, IStaking {
         uint160 _amount,
         uint8 _stakeIndex
     ) private view {
+        if (_amount < MIN_STAKE_AMOUNT) revert BelowMinStakeAmount();
         if (_amount > maxStakeAmount()) revert ExceedsMaxStakeAmount();
         if (_stakeIndex > MAX_STAKE_INDEX) revert InvalidStakeIndex();
 

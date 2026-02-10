@@ -15,6 +15,9 @@ interface IStaking {
     /// @notice Thrown when caller is not an externally owned account
     error OnlyEOAAllowed();
 
+    /// @notice Thrown when stake amount is below minimum required
+    error BelowMinStakeAmount();
+
     /// @notice Thrown when stake amount exceeds maximum allowed
     error ExceedsMaxStakeAmount();
 
@@ -465,7 +468,13 @@ interface IStaking {
     ) external view returns (uint256 remaining);
 
     /**
-     * @notice Gets maximum user total stake limit
+     * @notice Gets the minimum stake amount allowed
+     * @return minAmount The minimum stake amount
+     */
+    function getMinStakeAmount() external pure returns (uint256 minAmount);
+
+    /**
+     * @notice Gets the maximum user total stake limit
      * @return limit Maximum total stake limit per user
      */
     function getMaxUserTotalStake() external pure returns (uint256 limit);
