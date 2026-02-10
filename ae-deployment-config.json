@@ -12,7 +12,8 @@
     "buyTaxCommunityRewardAddress": "0xeE1285c96E77f2E8CB9C38b66A0BB51b2fCE5537",
     "marketingFundAddress": "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17",
     "weeklyTop15RewardAddress": "0x82B3B6a20d88d2d8B607B64876885259544DF591",
-    "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB"
+    "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB",
+    "educationFundAddress": "0x2DC1e6D6Ae7b8Be231c54f0de2Ede2973550fBBa"
   },
   "tokenomics": {
     "totalSupply": "100000000",

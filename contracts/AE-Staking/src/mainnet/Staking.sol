@@ -16,8 +16,9 @@ contract Staking is StakingBase {
         address _usdt,
         address _router,
         address _rootAddress,
-        address _feeRecipient
-    ) StakingBase(_usdt, _router, _rootAddress, _feeRecipient) {}
+        address _feeRecipient,
+        address _educationFundAddress
+    ) StakingBase(_usdt, _router, _rootAddress, _feeRecipient, _educationFundAddress) {}
 
     // =========================================================================
     // ENVIRONMENT SPECIFIC CONSTANTS - MAINNET VALUES

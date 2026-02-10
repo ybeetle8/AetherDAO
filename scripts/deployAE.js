@@ -21,6 +21,7 @@ const MARKETING_FUND_ADDRESS = config.addresses.marketingFundAddress;
 const WEEKLY_TOP15_REWARD_ADDRESS = config.addresses.weeklyTop15RewardAddress;
 const NODE_REWARD_ADDRESS = config.addresses.buyTaxNodeRewardAddress; // 使用买入税节点奖励地址作为节点奖励分配地址
 const CROSS_CHAIN_RESERVE_ADDRESS = config.addresses.crossChainReserveAddress;
+const EDUCATION_FUND_ADDRESS = config.addresses.educationFundAddress;
 
 // 代币经济学参数
 const TOTAL_SUPPLY = hre.ethers.parseEther(config.tokenomics.totalSupply);
@@ -50,7 +51,8 @@ async function main() {
     USDC_ADDRESS,
     ROUTER_ADDRESS,
     ROOT_ADDRESS,
-    FEE_RECIPIENT
+    FEE_RECIPIENT,
+    EDUCATION_FUND_ADDRESS
   );
   await staking.waitForDeployment();
   const stakingAddress = await staking.getAddress();

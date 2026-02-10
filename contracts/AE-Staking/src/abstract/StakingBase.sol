@@ -115,6 +115,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
     IAE public AE;
     address private rootAddress;
+    address private educationFundAddress;
 
     // Manual token implementation
     uint8 public constant decimals = 18;
@@ -140,9 +141,6 @@ abstract contract StakingBase is Ownable, IStaking {
     mapping(address => address) private _referrals;
     mapping(address => address[]) private _children;
     mapping(address => bool) private _hasLocked;
-
-    // Friend reward system
-    mapping(address => address) private _friends;
 
     // Withdrawal history tracking
     mapping(address => IStaking.WithdrawalRecord[])
@@ -203,15 +201,18 @@ abstract contract StakingBase is Ownable, IStaking {
         address _usdt,
         address _router,
         address _rootAddress,
-        address _feeRecipient
+        address _feeRecipient,
+        address _educationFundAddress
     ) Ownable(msg.sender) {
         require(_usdt != address(0), "Invalid USDT address");
         require(_router != address(0), "Invalid router address");
+        require(_educationFundAddress != address(0), "Invalid education fund address");
 
         USDT = _usdt;
         ROUTER = IUniswapV2Router02(_router);
         rootAddress = _rootAddress;
         feeRecipient = _feeRecipient; // Initialize fee recipient to root address
+        educationFundAddress = _educationFundAddress;
 
         IERC20(_usdt).approve(_router, type(uint256).max);
         _updateRatesForMode();
@@ -335,18 +336,6 @@ abstract contract StakingBase is Ownable, IStaking {
 
     function setRootAddress(address _rootAddress) external onlyOwner {
         rootAddress = _rootAddress;
-    }
-
-    function lockFriend(address _friend) external {
-        address user = msg.sender;
-
-        if (_friends[user] != address(0)) revert AlreadyBound();
-        require(_friend != address(0), "Invalid friend address");
-        require(_friend != user, "Cannot set self as friend");
-
-        _friends[user] = _friend;
-
-        emit BindFriend(user, _friend);
     }
 
     function sync() external {
@@ -722,10 +711,6 @@ abstract contract StakingBase is Ownable, IStaking {
         return _referrals[_user];
     }
 
-    function getFriend(address user) public view returns (address) {
-        return _friends[user];
-    }
-
     function isBindReferral(address _user) public view returns (bool) {
         return _referrals[_user] != address(0);
     }
@@ -1025,12 +1010,8 @@ abstract contract StakingBase is Ownable, IStaking {
         unchecked {
             fee = (_interset * REFERRAL_REWARD_RATE) / PERCENTAGE_BASE;
         }
-        address friend = getFriend(_user);
-        if (friend != address(0)) {
-            IERC20(USDT).transfer(friend, fee);
-        } else {
-            IERC20(USDT).transfer(rootAddress, fee);
-        }
+        // 直接将 5% 奖励转给教育基金地址
+        IERC20(USDT).transfer(educationFundAddress, fee);
     }
 
     function _distributeTeamReward(

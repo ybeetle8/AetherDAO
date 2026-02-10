@@ -1,10 +1,10 @@
 {
   "network": "localhost",
-  "timestamp": "2026-02-10T07:37:11.644Z",
+  "timestamp": "2026-02-10T07:57:36.459Z",
   "contracts": {
-    "AE": "0xc2F16467559220F3ba4C4b6eC73DF328358E5F49",
-    "Staking": "0xC3ed75F70fEDe0271B084954D36B47511E764b13",
-    "Pair": "0x5665F80A44D4Eca4392f84fc4080C9718C15bfab"
+    "AE": "0x19F5484CC69a17319E15Ed4B2A5DE7aFEe002456",
+    "Staking": "0xf7c4AD344F240447E447DdE25b91D4D0F92Ed2e9",
+    "Pair": "0x736C84E95dEdf818c8788e5f7eEA099ff2aB9F0a"
   },
   "addresses": {
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
