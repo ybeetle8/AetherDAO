@@ -15,7 +15,7 @@ async function main() {
     console.log("========================================\n");
 
     // 获取部署配置
-    const deploymentConfig = require("../ae-deployment.json");
+    const deploymentConfig = require("../../ae-deployment.json");
     const stakingAddress = deploymentConfig.contracts.Staking;
     const aeAddress = deploymentConfig.contracts.AE;
     const usdtAddress = deploymentConfig.contracts.USDT;
