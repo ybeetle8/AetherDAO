@@ -1,0 +1,35 @@
+{
+  "name": "stable-yield-dex",
+  "version": "1.0.0",
+  "description": "stable-yield",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "test-all": "./run-all-tests.sh",
+    "test-direct": "npx hardhat test test/contract-direct-test.js --network localhost",
+    "test-system": "npx hardhat test test/OLASystem.test.js --network localhost",
+    "test-network": "npx hardhat test test/network-connection-test.js --network localhost",
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.js",
+    "deploy-pancake": "npx hardhat run scripts/deployPancakeSwap.js",
+    "use-pancake": "npx hardhat run scripts/usePancakeSwap.js",
+    "deploy-and-use": "npx hardhat run scripts/deployAndUse.js",
+    "node": "npx hardhat node",
+    "monitor-events": "npx hardhat run scripts/monitorStakingEvents.js --network localhost",
+    "test-events": "npx hardhat run scripts/testStakingEvents.js --network localhost"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.26.3",
+    "hardhat-preprocessor": "^0.1.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "@prb/math": "^4.1.0",
+    "dotenv": "^17.2.3"
+  }
+}

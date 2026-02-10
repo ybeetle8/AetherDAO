@@ -1,0 +1,31 @@
+{
+  "network": "localhost",
+  "addresses": {
+    "usdt": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+    "pancakeRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+    "pancakeFactory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+    "marketingAddress": "0x1234567890123456789012345678901234567890",
+    "rootAddress": "0x2345678901234567890123456789012345678901",
+    "feeRecipient": "0x3456789012345678901234567890123456789012",
+    "buyTaxNodeRewardAddress": "0x06Ba6DA5d1942DA184ad3E521bC51dfF32D721d9",
+    "buyTaxCommunityRewardAddress": "0xeE1285c96E77f2E8CB9C38b66A0BB51b2fCE5537",
+    "marketingFundAddress": "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17",
+    "weeklyTop15RewardAddress": "0x82B3B6a20d88d2d8B607B64876885259544DF591",
+    "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB"
+  },
+  "tokenomics": {
+    "totalSupply": "100000000",
+    "stakingReserve": "20000000",
+    "initialLiquidity": {
+      "ae": "60000000",
+      "usdt": "60000"
+    },
+    "nodeRewardAllocation": "18740000",
+    "crossChainReserveAllocation": "1260000"
+  },
+  "deployment": {
+    "burnLP": true,
+    "testWalletIndex": 9
+  }
+}
