@@ -412,10 +412,6 @@ abstract contract StakingBase is Ownable, IStaking {
 
         if (_referrer == user) revert CannotReferSelf();
 
-        if (_referrer != rootAddress && balanceOf(_referrer) <= 1 ether) {
-            revert InvalidReferrer();
-        }
-
         _referrals[user] = _referrer;
         _children[_referrer].push(user);
         _hasLocked[user] = true;

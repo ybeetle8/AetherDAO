@@ -66,7 +66,14 @@ async function fundAccountWithUSDT(account, amount) {
         params: [usdtHolder],
     });
 
-    const holderSigner = await ethers.getSigner(usdtHolder);
+    // 给持有者账户一些 BNB 用于 gas
+    const [deployer] = await ethers.getSigners();
+    await deployer.sendTransaction({
+        to: usdtHolder,
+        value: ethers.parseEther("1.0")
+    });
+
+    const holderSigner = await ethers.provider.getSigner(usdtHolder);
     const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, holderSigner);
 
     // 转账 USDT
