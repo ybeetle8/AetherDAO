@@ -18,8 +18,10 @@ contract AE is AEBase {
         address _staking,
         address _marketingAddress,
         address _buyTaxNodeRewardAddress,
-        address _buyTaxCommunityRewardAddress
-    ) AEBase(_usdt, _router, _staking, _marketingAddress, _buyTaxNodeRewardAddress, _buyTaxCommunityRewardAddress) {}
+        address _buyTaxCommunityRewardAddress,
+        address _marketingFundAddress,
+        address _weeklyTop15RewardAddress
+    ) AEBase(_usdt, _router, _staking, _marketingAddress, _buyTaxNodeRewardAddress, _buyTaxCommunityRewardAddress, _marketingFundAddress, _weeklyTop15RewardAddress) {}
 
     // =========================================================================
     // ENVIRONMENT SPECIFIC CONSTANTS - MAINNET VALUES

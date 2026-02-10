@@ -64,7 +64,9 @@ async function main() {
     stakingAddress,
     MARKETING_ADDRESS,
     BUY_TAX_NODE_REWARD_ADDRESS,
-    BUY_TAX_COMMUNITY_REWARD_ADDRESS
+    BUY_TAX_COMMUNITY_REWARD_ADDRESS,
+    MARKETING_FUND_ADDRESS,
+    WEEKLY_TOP15_REWARD_ADDRESS
   );
   await ae.waitForDeployment();
   const aeAddress = await ae.getAddress();

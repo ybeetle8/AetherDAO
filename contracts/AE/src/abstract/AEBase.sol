@@ -787,13 +787,27 @@ abstract contract AEBase is ERC20, Ownable {
         if (block.timestamp < lastBuyTime[from] + coldTime)
             revert InColdPeriod();
 
+        // =====================================================================
+        // 第一步：处理卖出税（3%）
+        // =====================================================================
+        // 1.5% → marketingFundAddress (直接发送 AE)
+        // 1.5% → DEAD_ADDRESS (直接销毁 AE)
         uint256 marketingFee = (amount * SELL_MARKETING_FEE) / BASIS_POINTS;
-        uint256 liquidityAccumFee = (amount * SELL_LIQUIDITY_ACCUM_FEE) /
-            BASIS_POINTS;
-        uint256 netAmountAfterTradingFees = amount -
-            marketingFee -
-            liquidityAccumFee;
+        uint256 burnFee = (amount * SELL_LIQUIDITY_ACCUM_FEE) / BASIS_POINTS;
+        uint256 netAmountAfterTradingFees = amount - marketingFee - burnFee;
 
+        // 直接发送卖出税
+        if (marketingFee > 0 && marketingFundAddress != address(0)) {
+            super._update(from, marketingFundAddress, marketingFee);
+        }
+        if (burnFee > 0) {
+            super._update(from, DEAD_ADDRESS, burnFee);
+            emit TokensBurned(burnFee);
+        }
+
+        // =====================================================================
+        // 第二步：计算盈利税（25%）
+        // =====================================================================
         uint256 estimatedUSDTFromSale = _estimateSwapOutput(
             netAmountAfterTradingFees
         );
@@ -801,7 +815,6 @@ abstract contract AEBase is ERC20, Ownable {
         uint256 profitTaxUSDT = 0;
         uint256 profitTaxInAE = 0;
         uint256 profitAmount = 0;
-        uint256 noProfitFeeUSDT = 0;
         uint256 userCurrentInvestment = userInvestment[from];
 
         if (
@@ -816,56 +829,63 @@ abstract contract AEBase is ERC20, Ownable {
                 estimatedUSDTFromSale;
         }
 
-        uint256 netAmount = amount -
-            marketingFee -
-            liquidityAccumFee -
-            profitTaxInAE;
+        uint256 netAmount = netAmountAfterTradingFees - profitTaxInAE;
+        uint256 actualUSDTReceived = estimatedUSDTFromSale - profitTaxUSDT;
 
-        uint256 actualUSDTReceived = estimatedUSDTFromSale -
-            profitTaxUSDT -
-            noProfitFeeUSDT;
-
-        if (marketingFee > 0) {
-            super._update(from, address(this), marketingFee);
-            amountMarketingFee += marketingFee;
-        }
-        if (liquidityAccumFee > 0) {
-            super._update(from, address(this), liquidityAccumFee);
-            amountLPFee += liquidityAccumFee;
-        }
-
+        // =====================================================================
+        // 第三步：处理盈利税分配
+        // =====================================================================
         uint256 profitTaxToMarketing = 0;
         uint256 profitTaxToReferrer = 0;
 
         if (profitTaxInAE > 0) {
             super._update(from, address(this), profitTaxInAE);
 
+            // 将盈利税 AE 换成 USDT
             uint256 usdtAmountFromProfitTax = _swapTokensForUSDT(
                 profitTaxInAE
             );
 
             if (usdtAmountFromProfitTax > 0) {
-                uint256 lsShare = (usdtAmountFromProfitTax * 10) / 25;
-                uint256 nodeShare = usdtAmountFromProfitTax - lsShare;
-
-                if (lsShare > 0) {
-                    IERC20(USDT).approve(address(liquidityStaking), lsShare);
-                    liquidityStaking.depositRewards(lsShare);
-                    emit LPRewardDeposited(lsShare);
+                // 15% → 添加流动性并销毁 LP
+                uint256 liquidityShare = (usdtAmountFromProfitTax * 15) / 100;
+                if (liquidityShare > 0) {
+                    _addLiquidityAndBurnLP(liquidityShare);
                 }
 
-                if (nodeShare > 0) {
-                    address nodeAddr = nodeDividendAddress != address(0)
-                        ? nodeDividendAddress
-                        : marketingAddress;
-                    IERC20(USDT).transfer(nodeAddr, nodeShare);
+                // 15% → weeklyTop15RewardAddress (USDT)
+                uint256 weeklyRewardShare = (usdtAmountFromProfitTax * 15) / 100;
+                if (weeklyRewardShare > 0 && weeklyTop15RewardAddress != address(0)) {
+                    IERC20(USDT).transfer(weeklyTop15RewardAddress, weeklyRewardShare);
                 }
 
-                profitTaxToReferrer = lsShare;
-                profitTaxToMarketing = nodeShare;
+                // 10% → 买入 AE 后发送到 marketingFundAddress
+                uint256 marketingShare = (usdtAmountFromProfitTax * 10) / 100;
+                if (marketingShare > 0) {
+                    uint256 aeAmount = _swapUSDTForTokens(marketingShare);
+                    if (aeAmount > 0 && marketingFundAddress != address(0)) {
+                        super._update(address(this), marketingFundAddress, aeAmount);
+                    }
+                }
+
+                // 60% → 买入 AE 后销毁
+                uint256 burnShare = (usdtAmountFromProfitTax * 60) / 100;
+                if (burnShare > 0) {
+                    uint256 aeAmount = _swapUSDTForTokens(burnShare);
+                    if (aeAmount > 0) {
+                        super._update(address(this), DEAD_ADDRESS, aeAmount);
+                        emit TokensBurned(aeAmount);
+                    }
+                }
+
+                profitTaxToMarketing = marketingShare;
+                profitTaxToReferrer = weeklyRewardShare;
             }
         }
 
+        // =====================================================================
+        // 第四步：执行实际卖出
+        // =====================================================================
         super._update(from, to, netAmount);
 
         _updateInvestmentAfterSell(from, actualUSDTReceived);
@@ -874,12 +894,12 @@ abstract contract AEBase is ERC20, Ownable {
             from,
             amount,
             marketingFee,
-            liquidityAccumFee,
+            burnFee,
             netAmountAfterTradingFees,
             estimatedUSDTFromSale,
             userCurrentInvestment,
             profitTaxUSDT,
-            noProfitFeeUSDT,
+            0,  // noProfitFeeUSDT (不再使用)
             profitTaxToMarketing,
             profitTaxToReferrer,
             actualUSDTReceived
@@ -957,6 +977,71 @@ abstract contract AEBase is ERC20, Ownable {
         }
     }
 
+    /**
+     * @notice Swap USDT for AE tokens (reverse of _swapTokensForUSDT)
+     * @param usdtAmount Amount of USDT to swap
+     * @return aeReceived Amount of AE tokens received
+     */
+    function _swapUSDTForTokens(
+        uint256 usdtAmount
+    ) private lockSwap returns (uint256 aeReceived) {
+        if (usdtAmount == 0) return 0;
+
+        uint256 usdtBalance = IERC20(USDT).balanceOf(address(this));
+        if (usdtBalance < usdtAmount) return 0;
+
+        address[] memory path = new address[](2);
+        path[0] = USDT;
+        path[1] = address(this);
+
+        // Approve USDT for swap
+        IERC20(USDT).approve(address(uniswapV2Router), usdtAmount);
+
+        uint256 initialBalance = balanceOf(address(this));
+
+        // Calculate minimum output with 5% slippage protection
+        uint256 minOutput = _getMinimumSwapOutputForUSDT(usdtAmount);
+
+        try
+            uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                usdtAmount,
+                minOutput,  // 95% of expected output (5% slippage)
+                path,
+                address(this),
+                block.timestamp + 300
+            )
+        {
+            uint256 finalBalance = balanceOf(address(this));
+            uint256 actualReceived = finalBalance > initialBalance
+                ? finalBalance - initialBalance
+                : 0;
+
+            if (actualReceived == 0) {
+                emit SwapFailed(
+                    "USDT to AE swap returned zero tokens",
+                    usdtAmount,
+                    block.timestamp
+                );
+            }
+
+            return actualReceived;
+        } catch Error(string memory reason) {
+            emit SwapFailed(reason, usdtAmount, block.timestamp);
+            // On failure, transfer USDT to marketingFundAddress as fallback
+            if (marketingFundAddress != address(0)) {
+                IERC20(USDT).transfer(marketingFundAddress, usdtAmount);
+            }
+            return 0;
+        } catch {
+            emit SwapFailed("Unknown USDT to AE swap error", usdtAmount, block.timestamp);
+            // On failure, transfer USDT to marketingFundAddress as fallback
+            if (marketingFundAddress != address(0)) {
+                IERC20(USDT).transfer(marketingFundAddress, usdtAmount);
+            }
+            return 0;
+        }
+    }
+
     // Helper functions with complete implementation
     function _estimateSwapOutput(
         uint256 xfAmount
@@ -983,6 +1068,43 @@ abstract contract AEBase is ERC20, Ownable {
     ) private view returns (uint256) {
         uint256 estimatedOutput = _estimateSwapOutput(tokenAmount);
         return (estimatedOutput * 95) / 100; // 5% slippage protection
+    }
+
+    /**
+     * @notice Calculate minimum AE output for USDT swap with slippage protection
+     * @param usdtAmount Amount of USDT to swap
+     * @return Minimum AE tokens expected (95% of estimated)
+     */
+    function _getMinimumSwapOutputForUSDT(
+        uint256 usdtAmount
+    ) private view returns (uint256) {
+        uint256 estimatedOutput = _estimateUSDTToAEOutput(usdtAmount);
+        return (estimatedOutput * 95) / 100; // 5% slippage protection
+    }
+
+    /**
+     * @notice Estimate AE output for a given USDT input
+     * @param usdtAmount Amount of USDT to swap
+     * @return aeAmount Estimated AE tokens to receive
+     */
+    function _estimateUSDTToAEOutput(
+        uint256 usdtAmount
+    ) private view returns (uint256 aeAmount) {
+        try uniswapV2Pair.getReserves() returns (
+            uint112 reserve0,
+            uint112 reserve1,
+            uint32
+        ) {
+            (uint112 reserveUSDT, uint112 reserveAE) = uniswapV2Pair.token0() ==
+                USDT
+                ? (reserve0, reserve1)
+                : (reserve1, reserve0);
+
+            if (reserveUSDT > 0 && reserveAE > 0) {
+                return Helper.getAmountOut(usdtAmount, reserveUSDT, reserveAE);
+            }
+        } catch {}
+        return 0;
     }
 
     function _estimateBuyUSDTCost(
@@ -1281,6 +1403,57 @@ abstract contract AEBase is ERC20, Ownable {
         {
             emit LiquidityAdded(tokenAmount, usdtAmount);
         } catch {}
+    }
+
+    /**
+     * @notice Add liquidity and burn LP tokens
+     * @dev Uses half of USDT to buy AE, then adds liquidity with both
+     * @param usdtAmount Total USDT amount to use for liquidity
+     */
+    function _addLiquidityAndBurnLP(uint256 usdtAmount) private {
+        if (usdtAmount == 0) return;
+
+        // Step 1: Use half USDT to buy AE
+        uint256 halfUSDT = usdtAmount / 2;
+        uint256 aeAmount = _swapUSDTForTokens(halfUSDT);
+
+        if (aeAmount == 0) {
+            // If swap failed, send all USDT to marketingFundAddress
+            if (marketingFundAddress != address(0)) {
+                IERC20(USDT).transfer(marketingFundAddress, usdtAmount);
+            }
+            return;
+        }
+
+        // Step 2: Add liquidity with remaining USDT and bought AE
+        uint256 remainingUSDT = usdtAmount - halfUSDT;
+
+        _approve(address(this), address(uniswapV2Router), aeAmount);
+        IERC20(USDT).approve(address(uniswapV2Router), remainingUSDT);
+
+        try
+            uniswapV2Router.addLiquidity(
+                address(this),
+                USDT,
+                aeAmount,
+                remainingUSDT,
+                0,  // Accept any amount of AE
+                0,  // Accept any amount of USDT
+                DEAD_ADDRESS,  // LP tokens sent to burn address
+                block.timestamp + 300
+            )
+        {
+            emit LiquidityAdded(aeAmount, remainingUSDT);
+        } catch {
+            // If addLiquidity fails, send USDT to marketingFundAddress
+            if (marketingFundAddress != address(0)) {
+                IERC20(USDT).transfer(marketingFundAddress, remainingUSDT);
+            }
+            // Burn the AE tokens that couldn't be added to liquidity
+            if (aeAmount > 0) {
+                super._update(address(this), DEAD_ADDRESS, aeAmount);
+            }
+        }
     }
 
     function _emitBuyTransactionEvent(
