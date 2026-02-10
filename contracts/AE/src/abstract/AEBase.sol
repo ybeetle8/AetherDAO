@@ -227,6 +227,8 @@ abstract contract AEBase is ERC20, Ownable {
     address public rootAddress;
     address public marketingAddress;
     address public nodeDividendAddress;
+    address public marketingFundAddress;      // 市场推广基金地址
+    address public weeklyTop15RewardAddress;  // 每周排名奖励地址
     uint256 public coldTime = 10 seconds;
     uint256 public amountMarketingFee;
     uint256 public amountLPFee;
@@ -290,7 +292,9 @@ abstract contract AEBase is ERC20, Ownable {
         address _staking,
         address _marketingAddress,
         address _buyTaxNodeRewardAddress,
-        address _buyTaxCommunityRewardAddress
+        address _buyTaxCommunityRewardAddress,
+        address _marketingFundAddress,
+        address _weeklyTop15RewardAddress
     ) ERC20("AE Token", "AE") Ownable(msg.sender) {
         if (
             _usdt == address(0) ||
@@ -298,7 +302,9 @@ abstract contract AEBase is ERC20, Ownable {
             _staking == address(0) ||
             _marketingAddress == address(0) ||
             _buyTaxNodeRewardAddress == address(0) ||
-            _buyTaxCommunityRewardAddress == address(0)
+            _buyTaxCommunityRewardAddress == address(0) ||
+            _marketingFundAddress == address(0) ||
+            _weeklyTop15RewardAddress == address(0)
         ) revert ZeroAddress();
 
         USDT = _usdt;
@@ -307,6 +313,8 @@ abstract contract AEBase is ERC20, Ownable {
         marketingAddress = _marketingAddress;
         buyTaxNodeRewardAddress = _buyTaxNodeRewardAddress;
         buyTaxCommunityRewardAddress = _buyTaxCommunityRewardAddress;
+        marketingFundAddress = _marketingFundAddress;
+        weeklyTop15RewardAddress = _weeklyTop15RewardAddress;
 
         _mint(owner(), 100_000_000 ether);
 
