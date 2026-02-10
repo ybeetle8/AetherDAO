@@ -530,4 +530,64 @@ interface IStaking {
      * @param users Array of user addresses to reset
      */
     function batchReset7DayStakeUsage(address[] calldata users) external;
+
+    // =========================================================================
+    // EARLY INTEREST WITHDRAWAL FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Emitted when a user withdraws interest early (before maturity)
+     * @param user The address of the user
+     * @param stakeIndex The index of the stake
+     * @param interestAmount The interest amount being withdrawn
+     * @param usdtReceived The actual USDT received from swap
+     * @param aeTokensUsed The amount of AE tokens used for the swap
+     * @param referralFee The fee paid to education fund (5%)
+     * @param teamFee The fee paid to team (35%)
+     * @param userPayout The final amount paid to user
+     * @param timestamp The timestamp of withdrawal
+     */
+    event InterestWithdrawn(
+        address indexed user,
+        uint256 indexed stakeIndex,
+        uint256 interestAmount,
+        uint256 usdtReceived,
+        uint256 aeTokensUsed,
+        uint256 referralFee,
+        uint256 teamFee,
+        uint256 userPayout,
+        uint40 timestamp
+    );
+
+    /**
+     * @notice Withdraws accumulated interest from a stake without withdrawing principal
+     * @param stakeIndex Index of the stake record
+     * @return interestWithdrawn Amount of interest withdrawn (before fees)
+     * @dev Can be called multiple times before stake maturity
+     * @dev Principal remains staked and continues earning interest
+     * @dev Same fee structure as unstake: 5% education fund + 35% team + 1% redemption fee
+     */
+    function withdrawInterest(uint256 stakeIndex) external returns (uint256 interestWithdrawn);
+
+    /**
+     * @notice Gets the available interest that can be withdrawn for a stake
+     * @param user User address
+     * @param stakeIndex Index of the stake record
+     * @return availableInterest Amount of interest available for withdrawal
+     */
+    function getAvailableInterest(address user, uint256 stakeIndex)
+        external
+        view
+        returns (uint256 availableInterest);
+
+    /**
+     * @notice Gets the total interest already withdrawn from a stake
+     * @param user User address
+     * @param stakeIndex Index of the stake record
+     * @return withdrawn Total interest already withdrawn
+     */
+    function getWithdrawnInterest(address user, uint256 stakeIndex)
+        external
+        view
+        returns (uint256 withdrawn);
 }

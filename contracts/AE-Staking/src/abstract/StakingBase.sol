@@ -153,6 +153,10 @@ abstract contract StakingBase is Ownable, IStaking {
     // 7-day stake usage tracking
     mapping(address => bool) public hasUsed7DayStake;
 
+    // Early interest withdrawal tracking
+    // Maps user address => stake index => total interest withdrawn
+    mapping(address => mapping(uint256 => uint256)) public withdrawnInterest;
+
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
         address indexed oldAddress,
@@ -301,6 +305,99 @@ abstract contract StakingBase is Ownable, IStaking {
         AE.recycle(aeTokensUsed);
 
         return calculatedReward;
+    }
+
+    /**
+     * @notice Withdraws accumulated interest from a stake without withdrawing principal
+     * @param stakeIndex Index of the stake record
+     * @return interestWithdrawn Amount of interest withdrawn (before fees)
+     * @dev Can be called multiple times before stake maturity
+     * @dev Principal remains staked and continues earning interest
+     * @dev Same fee structure as unstake: 5% education fund + 35% team + 1% redemption fee
+     */
+    function withdrawInterest(
+        uint256 stakeIndex
+    ) external onlyEOA returns (uint256 interestWithdrawn) {
+        address user = msg.sender;
+        IStaking.Record[] storage cord = userStakeRecord[user];
+
+        // Validate stake exists and is not withdrawn
+        require(stakeIndex < cord.length, "Invalid stake index");
+        IStaking.Record storage stakeRecord = cord[stakeIndex];
+        if (stakeRecord.status) revert AlreadyWithdrawn();
+
+        // Calculate total current value and interest
+        uint256 totalCurrentValue = _calculateStakeReward(stakeRecord);
+        uint256 principalAmount = stakeRecord.amount;
+
+        // Calculate available interest (total interest - already withdrawn)
+        uint256 totalInterest = totalCurrentValue > principalAmount
+            ? totalCurrentValue - principalAmount
+            : 0;
+        uint256 alreadyWithdrawn = withdrawnInterest[user][stakeIndex];
+        uint256 availableInterest = totalInterest > alreadyWithdrawn
+            ? totalInterest - alreadyWithdrawn
+            : 0;
+
+        require(availableInterest > 0, "No interest available to withdraw");
+
+        // Update withdrawn interest BEFORE external calls (Checks-Effects-Interactions)
+        withdrawnInterest[user][stakeIndex] = alreadyWithdrawn + availableInterest;
+
+        // Swap AE for USDT to pay the interest
+        (uint256 usdtReceived, uint256 aeTokensUsed) = _swapAEForReward(
+            availableInterest
+        );
+
+        // Distribute fees (same as unstake)
+        address[] memory referralChain = getReferrals(user, maxD);
+        uint256 friendReward = _distributeFriendReward(user, usdtReceived);
+        uint256 teamFee = _distributeTeamReward(referralChain, usdtReceived);
+
+        // Calculate user payout
+        uint256 userPayout = usdtReceived - friendReward - teamFee;
+
+        // Calculate and collect 1% redemption fee
+        uint256 expectedRedemptionFeeUSDT = (userPayout * REDEMPTION_FEE_RATE) /
+            BASIS_POINTS_DENOMINATOR;
+
+        if (expectedRedemptionFeeUSDT > 0 && feeRecipient != address(0)) {
+            // Convert 1% of AE to USDT for fee collection
+            (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
+                expectedRedemptionFeeUSDT
+            );
+
+            // Emit fee collection event
+            emit RedemptionFeeCollected(
+                user,
+                stakeIndex,
+                redemptionFeeAEUsed,
+                expectedRedemptionFeeUSDT,
+                feeRecipient,
+                block.timestamp
+            );
+        }
+
+        // Transfer USDT to user
+        IERC20(USDT).transfer(user, userPayout);
+
+        // Recycle AE tokens
+        AE.recycle(aeTokensUsed);
+
+        // Emit event
+        emit InterestWithdrawn(
+            user,
+            stakeIndex,
+            availableInterest,
+            usdtReceived,
+            aeTokensUsed,
+            friendReward,
+            teamFee,
+            userPayout,
+            uint40(block.timestamp)
+        );
+
+        return availableInterest;
     }
 
     function lockReferral(address _referrer) external {
@@ -1478,5 +1575,55 @@ abstract contract StakingBase is Ownable, IStaking {
                 emit Stake7DayUsageReset(users[i], block.timestamp);
             }
         }
+    }
+
+    // =========================================================================
+    // EARLY INTEREST WITHDRAWAL VIEW FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Gets the available interest that can be withdrawn for a stake
+     * @param user User address
+     * @param stakeIndex Index of the stake record
+     * @return availableInterest Amount of interest available for withdrawal
+     */
+    function getAvailableInterest(
+        address user,
+        uint256 stakeIndex
+    ) external view returns (uint256 availableInterest) {
+        IStaking.Record[] storage cord = userStakeRecord[user];
+
+        // Return 0 if invalid index or already withdrawn
+        if (stakeIndex >= cord.length) return 0;
+
+        IStaking.Record storage stakeRecord = cord[stakeIndex];
+        if (stakeRecord.status) return 0; // Already fully withdrawn
+
+        // Calculate total current value and interest
+        uint256 totalCurrentValue = _calculateStakeReward(stakeRecord);
+        uint256 principalAmount = stakeRecord.amount;
+
+        // Calculate available interest
+        uint256 totalInterest = totalCurrentValue > principalAmount
+            ? totalCurrentValue - principalAmount
+            : 0;
+        uint256 alreadyWithdrawn = withdrawnInterest[user][stakeIndex];
+
+        availableInterest = totalInterest > alreadyWithdrawn
+            ? totalInterest - alreadyWithdrawn
+            : 0;
+    }
+
+    /**
+     * @notice Gets the total interest already withdrawn from a stake
+     * @param user User address
+     * @param stakeIndex Index of the stake record
+     * @return withdrawn Total interest already withdrawn
+     */
+    function getWithdrawnInterest(
+        address user,
+        uint256 stakeIndex
+    ) external view returns (uint256 withdrawn) {
+        return withdrawnInterest[user][stakeIndex];
     }
 }
