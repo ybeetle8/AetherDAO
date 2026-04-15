@@ -1,0 +1,23 @@
+const hre = require("hardhat");
+const { ethers } = require("hardhat");
+
+async function main() {
+    const USDC_ADDRESS = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
+    const testAddress = "0x0934b424878B620905089031017A545C584F577A";
+    
+    const usdc = await ethers.getContractAt("IERC20", USDC_ADDRESS);
+    
+    console.log("检查 USDC 余额...");
+    try {
+        const balance = await usdc.balanceOf(testAddress);
+        console.log(`余额: ${ethers.formatEther(balance)} USDC`);
+    } catch (error) {
+        console.log(`错误: ${error.message}`);
+    }
+    
+    // 检查合约代码
+    const code = await ethers.provider.getCode(USDC_ADDRESS);
+    console.log(`USDC 合约代码长度: ${code.length}`);
+}
+
+main().catch(console.error);

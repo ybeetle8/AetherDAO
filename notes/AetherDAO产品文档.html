@@ -1,0 +1,669 @@
+<!DOCTYPE html><html><head>
+      <title>AetherDAO产品文档</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:////home/ybeetle/.vscode-server/extensions/shd101wyy.markdown-preview-enhanced-0.8.22/crossnote/dependencies/katex/katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="aetherdao-产品文档">AetherDAO 产品文档 </h1>
+<h2 id="一-产品简介">一、产品简介 </h2>
+<p>AetherDAO 是一个运行在 BSC（币安智能链）上的去中心化金融（DeFi）平台，围绕 <strong>AE 代币</strong> 构建，集成了代币交易、USDT 质押理财、推荐人团队奖励三大核心功能模块。</p>
+<p>平台的设计目标：</p>
+<ul>
+<li>通过买卖税收机制持续为代币注入流动性并销毁通缩</li>
+<li>通过质押系统为用户提供复利收益</li>
+<li>通过推荐人体系激励社区增长</li>
+</ul>
+<hr>
+<h2 id="二-核心功能模块">二、核心功能模块 </h2>
+<h3 id="21-ae-代币交易">2.1 AE 代币交易 </h3>
+<p>AE 是平台的原生代币，通过 PancakeSwap（Uniswap V2）与 USDT 组成交易对。所有买卖交易自动收取手续费，用于生态建设。</p>
+<h4 id="买入-ae">买入 AE </h4>
+<p>用户通过 PancakeSwap 用 USDT 购买 AE 时，自动扣除 <strong>3% 买入税</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>比例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>节点分红池</td>
+<td>2%</td>
+<td>分配给节点持有者</td>
+</tr>
+<tr>
+<td>社区分红池</td>
+<td>1%</td>
+<td>社区奖励基金</td>
+</tr>
+</tbody>
+</table>
+<p>用户实际到账金额 = 购买金额 × 97%</p>
+<h4 id="卖出-ae">卖出 AE </h4>
+<p>卖出时包含两部分税收：</p>
+<p><strong>固定税（3%）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>比例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>营销基金</td>
+<td>1.5%</td>
+<td>用于项目推广运营</td>
+</tr>
+<tr>
+<td>销毁</td>
+<td>1.5%</td>
+<td>永久销毁，减少流通量</td>
+</tr>
+</tbody>
+</table>
+<p><strong>利润税（盈利部分的 25%）</strong>：</p>
+<p>系统会追踪每个用户的历史买入成本。卖出时如果产生利润，对盈利部分额外收取 25% 的利润税，分配如下：</p>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>比例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>流动性增强</td>
+<td>15%</td>
+<td>自动买入 AE 并添加流动性，LP 烧毁</td>
+</tr>
+<tr>
+<td>周 Top15 奖励</td>
+<td>15%</td>
+<td>每周交易排名前15名奖励</td>
+</tr>
+<tr>
+<td>营销基金</td>
+<td>10%</td>
+<td>买入 AE 后转入营销基金</td>
+</tr>
+<tr>
+<td>销毁</td>
+<td>60%</td>
+<td>买入 AE 后永久销毁</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>举例：用户投入 1000 USDT 买入 AE，后以 1500 USDT 卖出。利润为 500 USDT，利润税 = 500 × 25% = 125 USDT。</p>
+</blockquote>
+<h4 id="冷却机制">冷却机制 </h4>
+<p>买入 AE 后 <strong>10 秒内不可卖出</strong>，防止闪电贷和机器人套利。</p>
+<h4 id="预售与延迟购买">预售与延迟购买 </h4>
+<ul>
+<li><strong>预售期</strong>：项目启动后 30 天内为预售阶段</li>
+<li><strong>延迟购买期</strong>：特定条件下启用 30 天延迟购买限制</li>
+</ul>
+<hr>
+<h3 id="22-usdt-质押理财">2.2 USDT 质押理财 </h3>
+<p>用户将 USDT 质押到平台，获得每日复利收益。</p>
+<h4 id="质押规则">质押规则 </h4>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最低质押</td>
+<td>100 USDT</td>
+</tr>
+<tr>
+<td>单次上限</td>
+<td>1,000 USDT</td>
+</tr>
+<tr>
+<td>总质押上限</td>
+<td>每个用户最多 10,000 USDT</td>
+</tr>
+<tr>
+<td>结算方式</td>
+<td>每日复利</td>
+</tr>
+</tbody>
+</table>
+<h4 id="质押期限与日收益率">质押期限与日收益率 </h4>
+<table>
+<thead>
+<tr>
+<th>质押期</th>
+<th>日收益率</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7 天</td>
+<td>0.6%</td>
+<td>每个用户仅能使用一次</td>
+</tr>
+<tr>
+<td>30 天</td>
+<td>0.9%</td>
+<td>-</td>
+</tr>
+<tr>
+<td>90 天</td>
+<td>1.1%</td>
+<td>-</td>
+</tr>
+<tr>
+<td>180 天</td>
+<td>1.5%</td>
+<td>-</td>
+</tr>
+<tr>
+<td>365 天</td>
+<td>2.0%</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>收益按复利计算，即每天的收益会加入本金继续生息。</p>
+<blockquote>
+<p>举例：质押 1000 USDT，选择 30 天期，日利率 0.9%。<br>
+30 天后总收益 = 1000 × (1.009^30 - 1) ≈ 308.9 USDT</p>
+</blockquote>
+<h4 id="质押资金流向">质押资金流向 </h4>
+<p>用户质押的 USDT 不是简单存放，而是自动参与流动性建设：</p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>用户质押 1000 USDT
+├── 500 USDT → 在 PancakeSwap 兑换为 AE 代币
+├── 500 USDT + 对应的 AE → 添加为交易对流动性
+└── 获得的 LP Token → 永久烧毁（不可撤回）
+</code></pre><p>这意味着每一笔质押都在为 AE 代币增加流动性深度，同时烧毁 LP 保证流动性永久锁定。</p>
+<h4 id="到期赎回">到期赎回 </h4>
+<p>质押到期后，用户可以赎回本金和收益。赎回时系统以 AE 代币形式结算收益，自动兑换为 USDT 发放给用户。</p>
+<p>赎回时的手续费分配：</p>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>比例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金</td>
+<td>5%</td>
+<td>用于社区教育和培训</td>
+</tr>
+<tr>
+<td>团队奖励</td>
+<td>最高 35%</td>
+<td>分配给推荐链上的团队领导</td>
+</tr>
+<tr>
+<td>赎回手续费</td>
+<td>1%</td>
+<td>平台运营费用</td>
+</tr>
+<tr>
+<td>用户到手</td>
+<td>剩余部分</td>
+<td>实际收到的 USDT</td>
+</tr>
+</tbody>
+</table>
+<h4 id="提前提取利息">提前提取利息 </h4>
+<p>质押期间，用户可以随时提取已产生的利息，无需等到到期：</p>
+<ul>
+<li>仅提取利息部分，本金继续锁定生息</li>
+<li>手续费结构与到期赎回相同（教育基金 5% + 团队奖励 + 赎回费 1%）</li>
+<li>已提取的利息不再重复计算</li>
+</ul>
+<hr>
+<h3 id="23-推荐人体系">2.3 推荐人体系 </h3>
+<p>平台内置多级推荐关系系统，鼓励用户邀请新人参与。</p>
+<h4 id="绑定推荐人">绑定推荐人 </h4>
+<ul>
+<li>每个用户可以绑定一个推荐人，<strong>一旦绑定不可更改</strong></li>
+<li>推荐人本身必须已经在链上绑定过推荐关系</li>
+<li>不允许自我推荐，不允许形成循环引用</li>
+<li>推荐链最大深度为 30 级</li>
+</ul>
+<h4 id="推荐链结构示例">推荐链结构示例 </h4>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>根节点（Root）
+├── Alice
+│   ├── Bob
+│   │   ├── Dave
+│   │   └── Eve
+│   └── Charlie
+│       └── Frank
+└── Grace
+</code></pre><p>当 Dave 赎回质押产生收益时，团队奖励沿推荐链向上分配给 Bob → Alice → Root。</p>
+<h4 id="好友绑定">好友绑定 </h4>
+<p>除推荐人外，用户还可以绑定一个"好友"地址，用于接收教育基金奖励（5%），同样一次性绑定不可更改。</p>
+<hr>
+<h3 id="24-团队等级与奖励">2.4 团队等级与奖励 </h3>
+<h4 id="等级体系">等级体系 </h4>
+<p>用户等级由 <strong>两个维度</strong> 共同决定，取较低者：</p>
+<p><strong>维度一：团队 KPI 等级</strong>（团队所有下级的质押总额）</p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>团队质押总额门槛</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>3,000 USDT</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>10,000 USDT</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>30,000 USDT</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>100,000 USDT</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>300,000 USDT</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>1,000,000 USDT</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>3,000,000 USDT</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>10,000,000 USDT</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>30,000,000 USDT</td>
+</tr>
+</tbody>
+</table>
+<p><strong>维度二：个人质押等级</strong>（用户自身当前活跃的质押总额）</p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>个人质押要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>100 USDT</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>300 USDT</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>600 USDT</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>1,000 USDT</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>3,000 USDT</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>6,000 USDT</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>10,000 USDT</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>15,000 USDT</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>20,000 USDT</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>举例：某用户团队 KPI 达到 V5（30万 USDT），但个人只质押了 500 USDT（V2），则该用户实际等级为 V2。<br>
+这保证了获得高等级奖励的用户自身必须有足够的参与度。</p>
+</blockquote>
+<h4 id="各等级的团队奖励比例">各等级的团队奖励比例 </h4>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>奖励比例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>7%</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>11%</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>15%</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>19%</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>23%</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>27%</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>31%</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>35%</td>
+</tr>
+</tbody>
+</table>
+<h4 id="差额分配机制">差额分配机制 </h4>
+<p>团队奖励采用<strong>严格差额制</strong>，沿推荐链向上分配，每一级只拿与下一级的差额部分：</p>
+<p><strong>示例</strong>：用户 Dave 赎回质押，产生 1000 USDT 利息</p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>团队奖励池 = 1000 × 35% = 350 USDT
+
+推荐链：Dave → Bob(V3) → Alice(V5) → Root
+
+分配过程：
+├── Bob（V3，奖励比例 11%）
+│   差额 = 11% - 0%（下面没有更高等级）= 11%
+│   获得 = 350 × 11% / 35% = 110 USDT
+│
+├── Alice（V5，奖励比例 19%）
+│   差额 = 19% - 11%（Bob 已拿走 11%）= 8%
+│   获得 = 350 × 8% / 35% = 80 USDT
+│
+└── Root（根节点）
+    获得 = 350 - 110 - 80 = 160 USDT（剩余全部）
+</code></pre><p>这种机制保证了：</p>
+<ul>
+<li>越高等级的领导人获得越多奖励</li>
+<li>但必须是"增量"贡献，不会重复计算</li>
+<li>未被分配的部分归入根节点</li>
+</ul>
+<h4 id="布道者身份">布道者身份 </h4>
+<p>当用户的质押总额 &gt;= 200 USDT 时，自动获得"布道者"身份。布道者可以享受推荐人体系的完整权益。</p>
+<hr>
+<h2 id="三-用户操作流程">三、用户操作流程 </h2>
+<h3 id="31-新用户入门">3.1 新用户入门 </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>1. 准备 BSC 钱包（如 MetaMask）和 USDT
+2. 通过邀请链接绑定推荐人（一次性操作）
+3. 选择参与方式：
+   ├── 直接交易：在 PancakeSwap 买卖 AE 代币
+   └── 质押理财：将 USDT 质押到平台赚取复利收益
+</code></pre><h3 id="32-质押操作流程">3.2 质押操作流程 </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>质押：
+1. 选择质押期限（7/30/90/180/365 天）
+2. 输入质押金额（100~1000 USDT，总计不超过 10000 USDT）
+3. 授权 USDT 并确认交易
+4. 系统自动完成流动性添加和记录
+
+提取利息（可选）：
+1. 查看当前可提取利息
+2. 确认提取，本金继续生息
+
+到期赎回：
+1. 质押到期后，点击赎回
+2. 系统计算总收益，扣除手续费
+3. USDT 到账
+</code></pre><h3 id="33-推荐人操作流程">3.3 推荐人操作流程 </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>1. 通过邀请链接或手动输入推荐人地址
+2. 确认绑定（链上交易，不可撤销）
+3. 开始质押后，推荐链上的领导人自动获得团队奖励
+4. 可选：绑定好友地址接收教育基金奖励
+</code></pre><hr>
+<h2 id="四-经济模型总览">四、经济模型总览 </h2>
+<h3 id="41-资金流向图">4.1 资金流向图 </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>         用户买入 AE
+              │
+    ┌─────────┴─────────┐
+    │                     │
+  97% → 用户获得 AE    3% → 税收
+                          ├── 2% 节点分红池
+                          └── 1% 社区分红池
+
+         用户卖出 AE
+              │
+    ┌─────────┴─────────────────┐
+    │                             │
+  扣税后 → 用户获得 USDT       税收
+                                 ├── 固定 3%
+                                 │   ├── 1.5% 营销
+                                 │   └── 1.5% 销毁
+                                 └── 利润税 25%（仅盈利部分）
+                                     ├── 60% 销毁
+                                     ├── 15% 流动性
+                                     ├── 15% 周 Top15
+                                     └── 10% 营销
+
+         用户质押 USDT
+              │
+    ┌─────────┴─────────┐
+    │                     │
+  50% → 兑换 AE        50% → 保留 USDT
+    │                     │
+    └────── 合并 ─────────┘
+              │
+        添加流动性（LP 烧毁）
+
+         用户赎回收益
+              │
+    ┌─────────┴─────────────────┐
+    │                             │
+  剩余 → 用户到手 USDT         手续费
+                                 ├── 5% 教育基金
+                                 ├── ≤35% 团队奖励
+                                 └── 1% 赎回费
+</code></pre><h3 id="42-通缩机制">4.2 通缩机制 </h3>
+<p>AE 代币通过多个途径持续通缩：</p>
+<ol>
+<li><strong>卖出固定销毁</strong>：每笔卖出的 1.5% 直接销毁</li>
+<li><strong>利润税销毁</strong>：盈利税中 60% 买入 AE 后销毁</li>
+<li><strong>LP 永久锁定</strong>：质押产生的 LP Token 全部烧毁，流动性不可撤回</li>
+<li><strong>利润税流动性</strong>：盈利税中 15% 添加流动性并烧毁 LP</li>
+</ol>
+<h3 id="43-流动性增长机制">4.3 流动性增长机制 </h3>
+<ol>
+<li>每笔质押都会将 USDT 和 AE 添加为流动性</li>
+<li>卖出利润税的 15% 自动添加流动性</li>
+<li>所有 LP Token 烧毁，流动性只增不减</li>
+</ol>
+<hr>
+<h2 id="五-关键参数一览">五、关键参数一览 </h2>
+<h3 id="代币交易参数">代币交易参数 </h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>买入总税率</td>
+<td>3%（2% 节点 + 1% 社区）</td>
+</tr>
+<tr>
+<td>卖出固定税率</td>
+<td>3%（1.5% 营销 + 1.5% 销毁）</td>
+</tr>
+<tr>
+<td>卖出利润税率</td>
+<td>盈利部分的 25%</td>
+</tr>
+<tr>
+<td>买卖冷却期</td>
+<td>10 秒</td>
+</tr>
+<tr>
+<td>预售持续时间</td>
+<td>30 天</td>
+</tr>
+<tr>
+<td>延迟购买期</td>
+<td>30 天</td>
+</tr>
+</tbody>
+</table>
+<h3 id="质押参数">质押参数 </h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最低质押额</td>
+<td>100 USDT</td>
+</tr>
+<tr>
+<td>单次最高质押额</td>
+<td>1,000 USDT</td>
+</tr>
+<tr>
+<td>用户总质押上限</td>
+<td>10,000 USDT</td>
+</tr>
+<tr>
+<td>7天期仅限使用</td>
+<td>1 次</td>
+</tr>
+<tr>
+<td>复利频率</td>
+<td>每天</td>
+</tr>
+<tr>
+<td>赎回手续费</td>
+<td>1%</td>
+</tr>
+<tr>
+<td>教育基金比例</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>团队奖励上限</td>
+<td>35%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="推荐人参数">推荐人参数 </h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>布道者门槛</td>
+<td>200 USDT 质押</td>
+</tr>
+<tr>
+<td>推荐链最大深度</td>
+<td>30 级</td>
+</tr>
+<tr>
+<td>推荐绑定</td>
+<td>一次性，不可更改</td>
+</tr>
+<tr>
+<td>好友绑定</td>
+<td>一次性，不可更改</td>
+</tr>
+<tr>
+<td>等级数量</td>
+<td>V1 ~ V9 共 9 个等级</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="六-平台特色">六、平台特色 </h2>
+<h3 id="流动性永久锁定">流动性永久锁定 </h3>
+<p>所有通过质押或利润税产生的 LP Token 全部烧毁，保证流动性只增不减，为代币价格提供持续支撑。</p>
+<h3 id="复利收益">复利收益 </h3>
+<p>质押收益按每日复利计算，相比单利模式可为用户带来更高的实际收益。</p>
+<h3 id="双维度等级制">双维度等级制 </h3>
+<p>团队等级同时考量团队业绩和个人投入，避免"只推荐不投入"的空转行为。</p>
+<h3 id="差额制团队奖励">差额制团队奖励 </h3>
+<p>公平的差额分配机制，保证每一级只拿自己等级对应的增量奖励，避免上级过度截留。</p>
+<h3 id="多重通缩">多重通缩 </h3>
+<p>卖出销毁、利润税销毁、LP锁定等多重通缩机制持续减少代币流通量。</p>
+<h3 id="利息灵活提取">利息灵活提取 </h3>
+<p>质押期间可随时提取已产生利息，无需等待到期，提高资金灵活性。</p>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>

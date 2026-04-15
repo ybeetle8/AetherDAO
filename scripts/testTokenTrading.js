@@ -5,35 +5,8 @@ const { ethers } = require("hardhat");
 const deploymentConfig = require("../ae-deployment-config.json");
 const deployment = require("../ae-deployment.json");
 
-// USDT 合约地址和 ABI
-const USDT_ADDRESS = deploymentConfig.addresses.usdt;
-const USDT_ABI = [
-    "function balanceOf(address) view returns (uint256)",
-    "function transfer(address to, uint256 amount) returns (bool)",
-    "function approve(address spender, uint256 amount) returns (bool)",
-    "function decimals() view returns (uint8)"
-];
-
-// PancakeSwap Router ABI
-const ROUTER_ABI = [
-    "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external",
-    "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
-    "function getAmountsOut(uint amountIn, address[] memory path) view returns (uint[] memory amounts)"
-];
-
-// AE Token ABI
-const AE_ABI = [
-    "function balanceOf(address) view returns (uint256)",
-    "function approve(address spender, uint256 amount) returns (bool)",
-    "function transfer(address to, uint256 amount) returns (bool)",
-    "function userInvestment(address) view returns (uint256)",
-    "function feeWhitelisted(address) view returns (bool)",
-    "function setFeeWhitelisted(address account, bool whitelisted) external",
-    "function amountMarketingFee() view returns (uint256)",
-    "function amountLPFee() view returns (uint256)",
-    "event TransactionExecuted(address indexed user, uint256 indexed timestamp, string indexed txType, uint256 tokenAmount, uint256 usdtAmount, uint256 netUserReceived, uint256 previousInvestment, uint256 newInvestment, uint256 burnFee, uint256 lpFee, uint256 marketingFee, uint256 profitAmount, uint256 profitTax, address referrer)",
-    "event SellTransaction(address indexed seller, uint256 indexed timestamp, uint256 originalXFAmount, uint256 tradingFeeXF, uint256 marketingFeeXF, uint256 lpFeeXF, uint256 netXFAfterTradingFees, uint256 estimatedUSDTFromSale, uint256 userHistoricalInvestment, uint256 totalProfitAmount, uint256 profitTaxUSDT, uint256 noProfitFeeUSDT, uint256 profitTaxToMarketing, uint256 profitTaxToReferrer, uint256 userNetProfitUSDT, uint256 finalUSDTReceived, address referrer)"
-];
+// USDC 合约地址（配置文件中 usdt 字段实际是 USDC 地址）
+const USDC_ADDRESS = deploymentConfig.addresses.usdt;
 
 // 格式化数字显示
 function formatToken(amount, decimals = 18, symbol = "") {
@@ -50,78 +23,133 @@ function printSeparator(title = "") {
     }
 }
 
-// 获取 USDT 持有者地址（从 BSC 主网）
-async function getUSDTHolder() {
-    // 这是 BSC 上的一个大户地址
-    return "0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"; // Binance Hot Wallet
-}
+async function main() {
+    printSeparator("AE 代币交易测试");
 
-// 为测试账户分配 USDT
-async function fundAccountWithUSDT(account, amount) {
-    const usdtHolder = await getUSDTHolder();
+    console.log(`\n测试配置:`);
+    console.log(`  网络: ${deploymentConfig.network}`);
+    console.log(`  AE 代币: ${deployment.contracts.AE}`);
+    console.log(`  USDC: ${USDC_ADDRESS}`);
+    console.log(`  交易对: ${deployment.contracts.Pair}`);
+    console.log(`  PancakeSwap Router: ${deploymentConfig.addresses.pancakeRouter}`);
 
-    // 模拟 USDT 持有者
-    await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [usdtHolder],
-    });
-
-    // 给持有者账户一些 BNB 用于 gas
+    // 获取签名者
     const [deployer] = await ethers.getSigners();
+    console.log(`\n部署者账户: ${deployer.address}`);
+
+    // 创建一个新的测试账户（非白名单）
+    const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+    const testAddress = testWallet.address;
+    console.log(`测试账户: ${testAddress}`);
+
+    // 为测试账户分配 BNB
     await deployer.sendTransaction({
-        to: usdtHolder,
+        to: testAddress,
         value: ethers.parseEther("1.0")
     });
+    console.log(`✓ 已为测试账户分配 1.0 BNB 用于 gas`);
 
-    const holderSigner = await ethers.provider.getSigner(usdtHolder);
-    const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, holderSigner);
+    // 连接合约
+    const usdc = await ethers.getContractAt("IERC20", USDC_ADDRESS);
+    const ae = await ethers.getContractAt(
+        [
+            "function balanceOf(address) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function userInvestment(address) view returns (uint256)",
+            "function amountMarketingFee() view returns (uint256)",
+            "function amountLPFee() view returns (uint256)",
+            "function feeWhitelisted(address) view returns (bool)"
+        ],
+        deployment.contracts.AE
+    );
+    const router = await ethers.getContractAt("IUniswapV2Router02", deploymentConfig.addresses.pancakeRouter);
+    const pair = await ethers.getContractAt("IUniswapV2Pair", deployment.contracts.Pair);
 
-    // 转账 USDT
-    await usdt.transfer(account, amount);
+    // 检查流动性池状态
+    const reserves = await pair.getReserves();
+    const token0 = await pair.token0();
+    const token1 = await pair.token1();
 
-    await hre.network.provider.request({
-        method: "hardhat_stopImpersonatingAccount",
-        params: [usdtHolder],
-    });
-}
+    console.log(`\n流动性池状态:`);
+    console.log(`  Token0: ${token0}`);
+    console.log(`  Token1: ${token1}`);
+    console.log(`  Reserve0: ${formatToken(reserves[0], 18)}`);
+    console.log(`  Reserve1: ${formatToken(reserves[1], 18)}`);
 
-// 测试买入代币
-async function testBuyTokens(trader, traderAddress, usdt, ae, router, buyAmount) {
-    printSeparator("测试买入 AE 代币");
+    // 确定 AE 和 USDC 在池中的位置
+    const aeIsToken0 = token0.toLowerCase() === deployment.contracts.AE.toLowerCase();
+    const aeReserve = aeIsToken0 ? reserves[0] : reserves[1];
+    const usdcReserve = aeIsToken0 ? reserves[1] : reserves[0];
 
-    console.log(`\n买入金额: ${formatToken(buyAmount, 18, "USDT")}`);
-    console.log(`交易者地址: ${traderAddress}`);
+    console.log(`\n流动性详情:`);
+    console.log(`  AE 储备: ${formatToken(aeReserve, 18, "AE")}`);
+    console.log(`  USDC 储备: ${formatToken(usdcReserve, 18, "USDC")}`);
+    console.log(`  当前价格: 1 AE = ${formatToken(usdcReserve * ethers.parseEther("1") / aeReserve, 18, "USDC")}`);
 
-    // 记录买入前的余额
-    const usdtBalanceBefore = await usdt.balanceOf(traderAddress);
-    const aeBalanceBefore = await ae.balanceOf(traderAddress);
-    const investmentBefore = await ae.userInvestment(traderAddress);
+    // 检查测试账户是否在白名单中
+    const isWhitelisted = await ae.feeWhitelisted(testAddress);
+    console.log(`\n测试账户白名单状态: ${isWhitelisted ? "是（将不收取费用）" : "否（将收取费用）"}`);
 
-    console.log(`\n买入前余额:`);
-    console.log(`  USDT: ${formatToken(usdtBalanceBefore, 18)}`);
-    console.log(`  AE: ${formatToken(aeBalanceBefore, 18)}`);
-    console.log(`  历史投资: ${formatToken(investmentBefore, 18, "USDT")}`);
+    // 为部署者分配 USDC，然后转给测试账户
+    console.log(`\n为测试账户分配 USDC...`);
 
-    // 记录各个费用接收地址的余额
+    // 先为部署者分配 USDC
+    const slot = 1; // USDC balances 映射的槽位
+    const deployerPadded = ethers.zeroPadValue(deployer.address, 32);
+    const slotPadded = ethers.zeroPadValue(ethers.toBeHex(slot), 32);
+    const deployerStorageSlot = ethers.keccak256(deployerPadded + slotPadded.slice(2));
+
+    const usdcToAdd = ethers.parseEther("20000"); // 分配 20000 USDC
+    await hre.network.provider.send("hardhat_setStorageAt", [
+        USDC_ADDRESS,
+        deployerStorageSlot,
+        ethers.zeroPadValue(ethers.toBeHex(usdcToAdd), 32)
+    ]);
+    await hre.network.provider.send("evm_mine", []);
+
+    // 部署者转账给测试账户
+    const usdcDeployer = usdc.connect(deployer);
+    await usdcDeployer.transfer(testAddress, ethers.parseEther("10000"));
+
+    const testUsdcBalance = await usdc.balanceOf(testAddress);
+    console.log(`✓ 测试账户 USDC 余额: ${formatToken(testUsdcBalance, 18)}`);
+
+    // 使用测试账户连接合约
+    const usdcTest = usdc.connect(testWallet);
+    const aeTest = ae.connect(testWallet);
+    const routerTest = router.connect(testWallet);
+
+    // ========================================================================
+    // 测试 1: 买入 AE 代币
+    // ========================================================================
+    printSeparator("测试 1: 买入 AE 代币");
+
+    const buyAmount = ethers.parseEther("1000"); // 买入 1000 USDC 的 AE
+    console.log(`\n买入金额: ${formatToken(buyAmount, 18, "USDC")}`);
+
+    // 记录买入前的余额和费用地址余额
+    const usdcBefore = await usdc.balanceOf(testAddress);
+    const aeBefore = await ae.balanceOf(testAddress);
+    const investmentBefore = await ae.userInvestment(testAddress);
     const nodeRewardBefore = await ae.balanceOf(deployment.addresses.buyTaxNodeRewardAddress);
     const communityRewardBefore = await ae.balanceOf(deployment.addresses.buyTaxCommunityRewardAddress);
 
-    console.log(`\n费用接收地址买入前余额:`);
-    console.log(`  节点奖励地址: ${formatToken(nodeRewardBefore, 18, "AE")}`);
-    console.log(`  社区奖励地址: ${formatToken(communityRewardBefore, 18, "AE")}`);
-
-    // 授权 Router
-    console.log(`\n授权 Router 使用 USDT...`);
-    await usdt.approve(deploymentConfig.addresses.pancakeRouter, buyAmount);
+    console.log(`\n买入前状态:`);
+    console.log(`  USDC 余额: ${formatToken(usdcBefore, 18)}`);
+    console.log(`  AE 余额: ${formatToken(aeBefore, 18)}`);
+    console.log(`  历史投资: ${formatToken(investmentBefore, 18, "USDC")}`);
+    console.log(`  节点奖励地址 AE: ${formatToken(nodeRewardBefore, 18)}`);
+    console.log(`  社区奖励地址 AE: ${formatToken(communityRewardBefore, 18)}`);
 
     // 获取预期输出
-    const path = [USDT_ADDRESS, deployment.contracts.AE];
+    const path = [USDC_ADDRESS, deployment.contracts.AE];
     const amountsOut = await router.getAmountsOut(buyAmount, path);
     const expectedAEOut = amountsOut[1];
 
     console.log(`\n预期输出 (不含费用): ${formatToken(expectedAEOut, 18, "AE")}`);
 
-    // 计算预期费用
+    // 计算预期费用 (买入费用: 2% 节点奖励 + 1% 社区奖励 = 3%)
     const nodeRewardFee = expectedAEOut * 200n / 10000n; // 2%
     const communityRewardFee = expectedAEOut * 100n / 10000n; // 1%
     const totalBuyFee = nodeRewardFee + communityRewardFee;
@@ -133,309 +161,204 @@ async function testBuyTokens(trader, traderAddress, usdt, ae, router, buyAmount)
     console.log(`  总买入费用 (3%): ${formatToken(totalBuyFee, 18, "AE")}`);
     console.log(`  预期净收到: ${formatToken(expectedNetAE, 18, "AE")}`);
 
-    // 执行买入
-    console.log(`\n执行买入交易...`);
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+    // 授权并执行买入
+    console.log(`\n授权 Router...`);
+    await usdcTest.approve(deploymentConfig.addresses.pancakeRouter, buyAmount);
 
-    const tx = await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+    console.log(`执行买入交易...`);
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+    const buyTx = await routerTest.swapExactTokensForTokensSupportingFeeOnTransferTokens(
         buyAmount,
-        0, // 最小输出设为 0，实际应该设置合理的滑点
+        0,
         path,
-        traderAddress,
+        testAddress,
         deadline
     );
-
-    const receipt = await tx.wait();
-    console.log(`交易哈希: ${receipt.hash}`);
-    console.log(`Gas 使用: ${receipt.gasUsed.toString()}`);
+    const buyReceipt = await buyTx.wait();
+    console.log(`✓ 交易成功 (Gas: ${buyReceipt.gasUsed.toString()})`);
 
     // 记录买入后的余额
-    const usdtBalanceAfter = await usdt.balanceOf(traderAddress);
-    const aeBalanceAfter = await ae.balanceOf(traderAddress);
-    const investmentAfter = await ae.userInvestment(traderAddress);
-
+    const usdcAfter = await usdc.balanceOf(testAddress);
+    const aeAfter = await ae.balanceOf(testAddress);
+    const investmentAfter = await ae.userInvestment(testAddress);
     const nodeRewardAfter = await ae.balanceOf(deployment.addresses.buyTaxNodeRewardAddress);
     const communityRewardAfter = await ae.balanceOf(deployment.addresses.buyTaxCommunityRewardAddress);
 
     // 计算实际变化
-    const usdtSpent = usdtBalanceBefore - usdtBalanceAfter;
-    const aeReceived = aeBalanceAfter - aeBalanceBefore;
+    const usdcSpent = usdcBefore - usdcAfter;
+    const aeReceived = aeAfter - aeBefore;
     const investmentIncrease = investmentAfter - investmentBefore;
-
     const nodeRewardReceived = nodeRewardAfter - nodeRewardBefore;
     const communityRewardReceived = communityRewardAfter - communityRewardBefore;
     const totalFeeCollected = nodeRewardReceived + communityRewardReceived;
 
-    console.log(`\n买入后余额:`);
-    console.log(`  USDT: ${formatToken(usdtBalanceAfter, 18)}`);
-    console.log(`  AE: ${formatToken(aeBalanceAfter, 18)}`);
-    console.log(`  历史投资: ${formatToken(investmentAfter, 18, "USDT")}`);
+    console.log(`\n买入后状态:`);
+    console.log(`  USDC 余额: ${formatToken(usdcAfter, 18)}`);
+    console.log(`  AE 余额: ${formatToken(aeAfter, 18)}`);
+    console.log(`  历史投资: ${formatToken(investmentAfter, 18, "USDC")}`);
 
     console.log(`\n实际变化:`);
-    console.log(`  USDT 花费: ${formatToken(usdtSpent, 18, "USDT")}`);
+    console.log(`  USDC 花费: ${formatToken(usdcSpent, 18, "USDC")}`);
     console.log(`  AE 收到: ${formatToken(aeReceived, 18, "AE")}`);
-    console.log(`  投资增加: ${formatToken(investmentIncrease, 18, "USDT")}`);
+    console.log(`  投资增加: ${formatToken(investmentIncrease, 18, "USDC")}`);
 
-    console.log(`\n费用接收地址实际收到:`);
-    console.log(`  节点奖励地址: ${formatToken(nodeRewardReceived, 18, "AE")}`);
-    console.log(`  社区奖励地址: ${formatToken(communityRewardReceived, 18, "AE")}`);
-    console.log(`  总费用收取: ${formatToken(totalFeeCollected, 18, "AE")}`);
+    console.log(`\n费用收取详情:`);
+    console.log(`  节点奖励收到: ${formatToken(nodeRewardReceived, 18, "AE")}`);
+    console.log(`  社区奖励收到: ${formatToken(communityRewardReceived, 18, "AE")}`);
+    console.log(`  总费用: ${formatToken(totalFeeCollected, 18, "AE")}`);
 
-    // 验证费用
     console.log(`\n费用验证:`);
-    const feeRate = totalFeeCollected * 10000n / expectedAEOut;
-    console.log(`  实际费率: ${feeRate.toString()} / 10000 = ${Number(feeRate) / 100}%`);
-    console.log(`  预期费率: 3%`);
+    const actualFeeRate = totalFeeCollected * 10000n / expectedAEOut;
+    console.log(`  实际费率: ${Number(actualFeeRate) / 100}% (预期 3%)`);
+    console.log(`  节点奖励费率: ${Number(nodeRewardReceived * 10000n / expectedAEOut) / 100}% (预期 2%)`);
+    console.log(`  社区奖励费率: ${Number(communityRewardReceived * 10000n / expectedAEOut) / 100}% (预期 1%)`);
+    console.log(`  投资记录正确: ${investmentIncrease === usdcSpent ? "✓" : "✗"}`);
 
-    const nodeRewardRate = nodeRewardReceived * 10000n / expectedAEOut;
-    const communityRewardRate = communityRewardReceived * 10000n / expectedAEOut;
-    console.log(`  节点奖励费率: ${Number(nodeRewardRate) / 100}% (预期 2%)`);
-    console.log(`  社区奖励费率: ${Number(communityRewardRate) / 100}% (预期 1%)`);
+    // ========================================================================
+    // 测试 2: 卖出 AE 代币
+    // ========================================================================
+    printSeparator("测试 2: 卖出 AE 代币");
 
-    // 验证投资记录
-    console.log(`\n投资记录验证:`);
-    console.log(`  投资增加是否等于 USDT 花费: ${investmentIncrease === usdtSpent ? "✓ 正确" : "✗ 错误"}`);
-
-    return {
-        aeReceived,
-        usdtSpent,
-        totalFeeCollected,
-        nodeRewardReceived,
-        communityRewardReceived
-    };
-}
-
-// 测试卖出代币
-async function testSellTokens(trader, traderAddress, usdt, ae, router, sellAmount) {
-    printSeparator("测试卖出 AE 代币");
-
+    const sellAmount = aeReceived / 2n; // 卖出一半
     console.log(`\n卖出数量: ${formatToken(sellAmount, 18, "AE")}`);
-    console.log(`交易者地址: ${traderAddress}`);
 
     // 记录卖出前的余额
-    const usdtBalanceBefore = await usdt.balanceOf(traderAddress);
-    const aeBalanceBefore = await ae.balanceOf(traderAddress);
-    const investmentBefore = await ae.userInvestment(traderAddress);
-
-    console.log(`\n卖出前余额:`);
-    console.log(`  USDT: ${formatToken(usdtBalanceBefore, 18)}`);
-    console.log(`  AE: ${formatToken(aeBalanceBefore, 18)}`);
-    console.log(`  历史投资: ${formatToken(investmentBefore, 18, "USDT")}`);
-
-    // 记录费用累积
+    const usdcBeforeSell = await usdc.balanceOf(testAddress);
+    const aeBeforeSell = await ae.balanceOf(testAddress);
+    const investmentBeforeSell = await ae.userInvestment(testAddress);
     const marketingFeeBefore = await ae.amountMarketingFee();
     const lpFeeBefore = await ae.amountLPFee();
 
-    console.log(`\n合约费用累积 (卖出前):`);
+    console.log(`\n卖出前状态:`);
+    console.log(`  USDC 余额: ${formatToken(usdcBeforeSell, 18)}`);
+    console.log(`  AE 余额: ${formatToken(aeBeforeSell, 18)}`);
+    console.log(`  历史投资: ${formatToken(investmentBeforeSell, 18, "USDC")}`);
     console.log(`  营销费用累积: ${formatToken(marketingFeeBefore, 18, "AE")}`);
     console.log(`  LP 费用累积: ${formatToken(lpFeeBefore, 18, "AE")}`);
 
-    // 授权 Router
-    console.log(`\n授权 Router 使用 AE...`);
-    await ae.approve(deploymentConfig.addresses.pancakeRouter, sellAmount);
+    // 获取预期输出
+    const sellPath = [deployment.contracts.AE, USDC_ADDRESS];
+    const sellAmountsOut = await router.getAmountsOut(sellAmount, sellPath);
+    const expectedUSDCOut = sellAmountsOut[1];
 
-    // 获取预期输出（不考虑费用）
-    const path = [deployment.contracts.AE, USDT_ADDRESS];
-    const amountsOut = await router.getAmountsOut(sellAmount, path);
-    const expectedUSDTOut = amountsOut[1];
+    console.log(`\n预期输出 (如果没有费用): ${formatToken(expectedUSDCOut, 18, "USDC")}`);
 
-    console.log(`\n预期输出 (如果没有费用): ${formatToken(expectedUSDTOut, 18, "USDT")}`);
-
-    // 计算预期费用
+    // 计算预期费用 (卖出费用: 1.5% 营销 + 1.5% LP = 3%)
     const marketingFee = sellAmount * 150n / 10000n; // 1.5%
     const lpFee = sellAmount * 150n / 10000n; // 1.5%
     const totalSellFee = marketingFee + lpFee;
     const netAEAfterFees = sellAmount - totalSellFee;
 
-    // 重新计算扣除费用后的预期 USDT
-    const amountsOutAfterFees = await router.getAmountsOut(netAEAfterFees, path);
-    const expectedUSDTAfterFees = amountsOutAfterFees[1];
+    // 重新计算扣除费用后的预期 USDC
+    const sellAmountsOutAfterFees = await router.getAmountsOut(netAEAfterFees, sellPath);
+    const expectedUSDCAfterFees = sellAmountsOutAfterFees[1];
 
     console.log(`\n预期费用计算:`);
     console.log(`  营销费用 (1.5%): ${formatToken(marketingFee, 18, "AE")}`);
     console.log(`  LP 费用 (1.5%): ${formatToken(lpFee, 18, "AE")}`);
     console.log(`  总卖出费用 (3%): ${formatToken(totalSellFee, 18, "AE")}`);
     console.log(`  扣费后 AE: ${formatToken(netAEAfterFees, 18, "AE")}`);
-    console.log(`  预期收到 USDT (扣费后): ${formatToken(expectedUSDTAfterFees, 18, "USDT")}`);
+    console.log(`  预期收到 USDC: ${formatToken(expectedUSDCAfterFees, 18, "USDC")}`);
 
     // 计算利润税或无利润费用
-    const saleValue = expectedUSDTAfterFees;
+    const saleValue = expectedUSDCAfterFees;
     let profitTax = 0n;
     let noProfitFee = 0n;
-    let expectedNetUSDT = saleValue;
+    let expectedNetUSDC = saleValue;
 
-    if (saleValue > investmentBefore) {
+    if (saleValue > investmentBeforeSell) {
         // 有利润，收取 25% 利润税
-        const profit = saleValue - investmentBefore;
+        const profit = saleValue - investmentBeforeSell;
         profitTax = profit * 2500n / 10000n;
-        expectedNetUSDT = saleValue - profitTax;
+        expectedNetUSDC = saleValue - profitTax;
         console.log(`\n利润计算:`);
-        console.log(`  卖出价值: ${formatToken(saleValue, 18, "USDT")}`);
-        console.log(`  历史投资: ${formatToken(investmentBefore, 18, "USDT")}`);
-        console.log(`  利润: ${formatToken(profit, 18, "USDT")}`);
-        console.log(`  利润税 (25%): ${formatToken(profitTax, 18, "USDT")}`);
-        console.log(`  预期净收到: ${formatToken(expectedNetUSDT, 18, "USDT")}`);
+        console.log(`  卖出价值: ${formatToken(saleValue, 18, "USDC")}`);
+        console.log(`  历史投资: ${formatToken(investmentBeforeSell, 18, "USDC")}`);
+        console.log(`  利润: ${formatToken(profit, 18, "USDC")}`);
+        console.log(`  利润税 (25%): ${formatToken(profitTax, 18, "USDC")}`);
+        console.log(`  预期净收到: ${formatToken(expectedNetUSDC, 18, "USDC")}`);
     } else {
         // 无利润，收取 25% 无利润费用
         noProfitFee = saleValue * 2500n / 10000n;
-        expectedNetUSDT = saleValue - noProfitFee;
+        expectedNetUSDC = saleValue - noProfitFee;
         console.log(`\n无利润费用计算:`);
-        console.log(`  卖出价值: ${formatToken(saleValue, 18, "USDT")}`);
-        console.log(`  历史投资: ${formatToken(investmentBefore, 18, "USDT")}`);
-        console.log(`  无利润费用 (25%): ${formatToken(noProfitFee, 18, "USDT")}`);
-        console.log(`  预期净收到: ${formatToken(expectedNetUSDT, 18, "USDT")}`);
+        console.log(`  卖出价值: ${formatToken(saleValue, 18, "USDC")}`);
+        console.log(`  历史投资: ${formatToken(investmentBeforeSell, 18, "USDC")}`);
+        console.log(`  无利润费用 (25%): ${formatToken(noProfitFee, 18, "USDC")}`);
+        console.log(`  预期净收到: ${formatToken(expectedNetUSDC, 18, "USDC")}`);
     }
 
-    // 执行卖出
-    console.log(`\n执行卖出交易...`);
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+    // 授权并执行卖出
+    console.log(`\n授权 Router...`);
+    await aeTest.approve(deploymentConfig.addresses.pancakeRouter, sellAmount);
 
-    const tx = await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+    console.log(`执行卖出交易...`);
+    const sellTx = await routerTest.swapExactTokensForTokensSupportingFeeOnTransferTokens(
         sellAmount,
         0,
-        path,
-        traderAddress,
+        sellPath,
+        testAddress,
         deadline
     );
-
-    const receipt = await tx.wait();
-    console.log(`交易哈希: ${receipt.hash}`);
-    console.log(`Gas 使用: ${receipt.gasUsed.toString()}`);
+    const sellReceipt = await sellTx.wait();
+    console.log(`✓ 交易成功 (Gas: ${sellReceipt.gasUsed.toString()})`);
 
     // 记录卖出后的余额
-    const usdtBalanceAfter = await usdt.balanceOf(traderAddress);
-    const aeBalanceAfter = await ae.balanceOf(traderAddress);
-    const investmentAfter = await ae.userInvestment(traderAddress);
-
+    const usdcAfterSell = await usdc.balanceOf(testAddress);
+    const aeAfterSell = await ae.balanceOf(testAddress);
+    const investmentAfterSell = await ae.userInvestment(testAddress);
     const marketingFeeAfter = await ae.amountMarketingFee();
     const lpFeeAfter = await ae.amountLPFee();
 
     // 计算实际变化
-    const usdtReceived = usdtBalanceAfter - usdtBalanceBefore;
-    const aeSold = aeBalanceBefore - aeBalanceAfter;
-    const investmentDecrease = investmentBefore - investmentAfter;
-
+    const usdcReceived = usdcAfterSell - usdcBeforeSell;
+    const aeSold = aeBeforeSell - aeAfterSell;
+    const investmentDecrease = investmentBeforeSell - investmentAfterSell;
     const marketingFeeIncrease = marketingFeeAfter - marketingFeeBefore;
     const lpFeeIncrease = lpFeeAfter - lpFeeBefore;
 
-    console.log(`\n卖出后余额:`);
-    console.log(`  USDT: ${formatToken(usdtBalanceAfter, 18)}`);
-    console.log(`  AE: ${formatToken(aeBalanceAfter, 18)}`);
-    console.log(`  历史投资: ${formatToken(investmentAfter, 18, "USDT")}`);
+    console.log(`\n卖出后状态:`);
+    console.log(`  USDC 余额: ${formatToken(usdcAfterSell, 18)}`);
+    console.log(`  AE 余额: ${formatToken(aeAfterSell, 18)}`);
+    console.log(`  历史投资: ${formatToken(investmentAfterSell, 18, "USDC")}`);
 
     console.log(`\n实际变化:`);
     console.log(`  AE 卖出: ${formatToken(aeSold, 18, "AE")}`);
-    console.log(`  USDT 收到: ${formatToken(usdtReceived, 18, "USDT")}`);
-    console.log(`  投资减少: ${formatToken(investmentDecrease, 18, "USDT")}`);
+    console.log(`  USDC 收到: ${formatToken(usdcReceived, 18, "USDC")}`);
+    console.log(`  投资减少: ${formatToken(investmentDecrease, 18, "USDC")}`);
 
-    console.log(`\n合约费用累积增加:`);
-    console.log(`  营销费用增加: ${formatToken(marketingFeeIncrease, 18, "AE")}`);
-    console.log(`  LP 费用增加: ${formatToken(lpFeeIncrease, 18, "AE")}`);
-    console.log(`  总费用累积: ${formatToken(marketingFeeIncrease + lpFeeIncrease, 18, "AE")}`);
+    console.log(`\n费用累积增加:`);
+    console.log(`  营销费用: ${formatToken(marketingFeeIncrease, 18, "AE")}`);
+    console.log(`  LP 费用: ${formatToken(lpFeeIncrease, 18, "AE")}`);
+    console.log(`  总费用: ${formatToken(marketingFeeIncrease + lpFeeIncrease, 18, "AE")}`);
 
-    // 验证费用
     console.log(`\n费用验证:`);
-    const totalFeeCollected = marketingFeeIncrease + lpFeeIncrease;
-    const feeRate = totalFeeCollected * 10000n / sellAmount;
-    console.log(`  实际费率: ${feeRate.toString()} / 10000 = ${Number(feeRate) / 100}%`);
-    console.log(`  预期费率: 3%`);
+    const totalSellFeeCollected = marketingFeeIncrease + lpFeeIncrease;
+    const sellFeeRate = totalSellFeeCollected * 10000n / sellAmount;
+    console.log(`  实际费率: ${Number(sellFeeRate) / 100}% (预期 3%)`);
+    console.log(`  营销费率: ${Number(marketingFeeIncrease * 10000n / sellAmount) / 100}% (预期 1.5%)`);
+    console.log(`  LP 费率: ${Number(lpFeeIncrease * 10000n / sellAmount) / 100}% (预期 1.5%)`);
 
-    const marketingFeeRate = marketingFeeIncrease * 10000n / sellAmount;
-    const lpFeeRate = lpFeeIncrease * 10000n / sellAmount;
-    console.log(`  营销费率: ${Number(marketingFeeRate) / 100}% (预期 1.5%)`);
-    console.log(`  LP 费率: ${Number(lpFeeRate) / 100}% (预期 1.5%)`);
-
-    return {
-        usdtReceived,
-        aeSold,
-        totalFeeCollected: marketingFeeIncrease + lpFeeIncrease,
-        marketingFeeIncrease,
-        lpFeeIncrease
-    };
-}
-
-async function main() {
-    printSeparator("AE 代币交易测试");
-
-    console.log(`\n测试配置:`);
-    console.log(`  网络: ${deploymentConfig.network}`);
-    console.log(`  AE 代币: ${deployment.contracts.AE}`);
-    console.log(`  USDT: ${USDT_ADDRESS}`);
-    console.log(`  PancakeSwap Router: ${deploymentConfig.addresses.pancakeRouter}`);
-
-    // 生成随机测试账户
-    const wallet = ethers.Wallet.createRandom();
-    const testAccount = wallet.connect(ethers.provider);
-    const testAddress = await testAccount.getAddress();
-
-    console.log(`\n生成测试账户: ${testAddress}`);
-
-    // 为测试账户分配 BNB (用于 gas)
-    const [deployer] = await ethers.getSigners();
-    const bnbAmount = ethers.parseEther("1.0");
-    await deployer.sendTransaction({
-        to: testAddress,
-        value: bnbAmount
-    });
-    console.log(`已分配 ${formatToken(bnbAmount, 18, "BNB")} 用于 gas`);
-
-    // 为测试账户分配 USDT
-    const usdtAmount = ethers.parseEther("10000"); // 10000 USDT
-    await fundAccountWithUSDT(testAddress, usdtAmount);
-    console.log(`已分配 ${formatToken(usdtAmount, 18, "USDT")}`);
-
-    // 连接合约
-    const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, testAccount);
-    const ae = new ethers.Contract(deployment.contracts.AE, AE_ABI, testAccount);
-    const router = new ethers.Contract(deploymentConfig.addresses.pancakeRouter, ROUTER_ABI, testAccount);
-
-    // 验证余额
-    const usdtBalance = await usdt.balanceOf(testAddress);
-    const aeBalance = await ae.balanceOf(testAddress);
-    console.log(`\n初始余额验证:`);
-    console.log(`  USDT: ${formatToken(usdtBalance, 18)}`);
-    console.log(`  AE: ${formatToken(aeBalance, 18)}`);
-
-    // 测试 1: 买入代币
-    const buyAmount = ethers.parseEther("1000"); // 买入 1000 USDT 的 AE
-    const buyResult = await testBuyTokens(testAccount, testAddress, usdt, ae, router, buyAmount);
-
-    // 等待一段时间
-    console.log(`\n等待 5 秒...`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    // 测试 2: 卖出部分代币
-    const sellAmount = buyResult.aeReceived / 2n; // 卖出一半
-    const sellResult = await testSellTokens(testAccount, testAddress, usdt, ae, router, sellAmount);
-
+    // ========================================================================
     // 最终总结
+    // ========================================================================
     printSeparator("测试总结");
 
-    console.log(`\n买入测试:`);
-    console.log(`  花费 USDT: ${formatToken(buyResult.usdtSpent, 18)}`);
-    console.log(`  收到 AE: ${formatToken(buyResult.aeReceived, 18)}`);
-    console.log(`  总费用: ${formatToken(buyResult.totalFeeCollected, 18, "AE")}`);
-    console.log(`  节点奖励: ${formatToken(buyResult.nodeRewardReceived, 18, "AE")}`);
-    console.log(`  社区奖励: ${formatToken(buyResult.communityRewardReceived, 18, "AE")}`);
+    console.log(`\n买入测试结果:`);
+    console.log(`  ✓ 花费 USDC: ${formatToken(usdcSpent, 18)}`);
+    console.log(`  ✓ 收到 AE: ${formatToken(aeReceived, 18)}`);
+    console.log(`  ✓ 总费用: ${formatToken(totalFeeCollected, 18, "AE")} (${Number(actualFeeRate) / 100}%)`);
+    console.log(`  ✓ 节点奖励: ${formatToken(nodeRewardReceived, 18, "AE")}`);
+    console.log(`  ✓ 社区奖励: ${formatToken(communityRewardReceived, 18, "AE")}`);
 
-    console.log(`\n卖出测试:`);
-    console.log(`  卖出 AE: ${formatToken(sellResult.aeSold, 18)}`);
-    console.log(`  收到 USDT: ${formatToken(sellResult.usdtReceived, 18)}`);
-    console.log(`  总费用: ${formatToken(sellResult.totalFeeCollected, 18, "AE")}`);
-    console.log(`  营销费用: ${formatToken(sellResult.marketingFeeIncrease, 18, "AE")}`);
-    console.log(`  LP 费用: ${formatToken(sellResult.lpFeeIncrease, 18, "AE")}`);
+    console.log(`\n卖出测试结果:`);
+    console.log(`  ✓ 卖出 AE: ${formatToken(aeSold, 18)}`);
+    console.log(`  ✓ 收到 USDC: ${formatToken(usdcReceived, 18)}`);
+    console.log(`  ✓ 总费用: ${formatToken(totalSellFeeCollected, 18, "AE")} (${Number(sellFeeRate) / 100}%)`);
+    console.log(`  ✓ 营销费用: ${formatToken(marketingFeeIncrease, 18, "AE")}`);
+    console.log(`  ✓ LP 费用: ${formatToken(lpFeeIncrease, 18, "AE")}`);
 
-    // 最终余额
-    const finalUsdtBalance = await usdt.balanceOf(testAddress);
-    const finalAeBalance = await ae.balanceOf(testAddress);
-    const finalInvestment = await ae.userInvestment(testAddress);
-
-    console.log(`\n最终余额:`);
-    console.log(`  USDT: ${formatToken(finalUsdtBalance, 18)}`);
-    console.log(`  AE: ${formatToken(finalAeBalance, 18)}`);
-    console.log(`  历史投资: ${formatToken(finalInvestment, 18, "USDT")}`);
-
-    console.log(`\n✓ 测试完成！`);
+    console.log(`\n✓ 所有测试完成！`);
 }
 
 main()
