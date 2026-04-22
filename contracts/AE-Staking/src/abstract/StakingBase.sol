@@ -254,7 +254,7 @@ abstract contract StakingBase is Ownable, IStaking {
             : 0;
 
         address[] memory referralChain = getReferrals(msg.sender, maxD);
-        uint256 friendReward = _distributeFriendReward(
+        uint256 educationFund = _distributeEducationFund(
             msg.sender,
             interestEarned
         );
@@ -262,7 +262,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
         _updateTeamInvestmentValues(msg.sender, principalAmount, false);
 
-        uint256 userPayout = usdtReceived - friendReward - teamFee;
+        uint256 userPayout = usdtReceived - educationFund - teamFee;
 
         // Calculate and collect 1% redemption fee
         uint256 expectedRedemptionFeeUSDT = (userPayout * REDEMPTION_FEE_RATE) /
@@ -293,7 +293,7 @@ abstract contract StakingBase is Ownable, IStaking {
                 calculatedReward,
                 usdtReceived,
                 aeTokensUsed,
-                friendReward,
+                educationFund,
                 teamFee,
                 userPayout,
                 interestEarned
@@ -351,11 +351,11 @@ abstract contract StakingBase is Ownable, IStaking {
 
         // Distribute fees (same as unstake)
         address[] memory referralChain = getReferrals(user, maxD);
-        uint256 friendReward = _distributeFriendReward(user, usdtReceived);
+        uint256 educationFund = _distributeEducationFund(user, usdtReceived);
         uint256 teamFee = _distributeTeamReward(referralChain, usdtReceived);
 
         // Calculate user payout
-        uint256 userPayout = usdtReceived - friendReward - teamFee;
+        uint256 userPayout = usdtReceived - educationFund - teamFee;
 
         // Calculate and collect 1% redemption fee
         uint256 expectedRedemptionFeeUSDT = (userPayout * REDEMPTION_FEE_RATE) /
@@ -391,7 +391,7 @@ abstract contract StakingBase is Ownable, IStaking {
             availableInterest,
             usdtReceived,
             aeTokensUsed,
-            friendReward,
+            educationFund,
             teamFee,
             userPayout,
             uint40(block.timestamp)
@@ -1096,7 +1096,7 @@ abstract contract StakingBase is Ownable, IStaking {
         }
     }
 
-    function _distributeFriendReward(
+    function _distributeEducationFund(
         address _user,
         uint256 _interset
     ) private returns (uint256 fee) {

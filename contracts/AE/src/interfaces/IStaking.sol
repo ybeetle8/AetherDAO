@@ -185,13 +185,6 @@ interface IStaking {
     event BindReferral(address indexed user, address indexed parent);
 
     /**
-     * @notice Emitted when a user binds a friend account for direct reward
-     * @param user User who binds the friend
-     * @param friend Friend address to receive direct rewards
-     */
-    event BindFriend(address indexed user, address indexed friend);
-
-    /**
      * @notice Emitted for token transfers (minting/burning)
      * @param from Source address (address(0) for minting)
      * @param to Destination address (address(0) for burning)
@@ -332,12 +325,6 @@ interface IStaking {
      */
     function lockReferral(address _referrer) external;
 
-    /**
-     * @notice Locks a friend account to receive the 5% direct reward
-     * @param _friend The friend address to bind
-     */
-    function lockFriend(address _friend) external;
-
     // =========================================================================
     // VIEW FUNCTIONS - USER INFORMATION
     // =========================================================================
@@ -377,13 +364,6 @@ interface IStaking {
     /// @param user Address to check
     /// @return The referrer address
     function getReferral(address user) external view returns (address);
-
-    /**
-     * @notice Gets the friend account bound by a user
-     * @param user Address to check
-     * @return The friend address
-     */
-    function getFriend(address user) external view returns (address);
 
     /// @notice Gets the team KPI value for a user (excluding self-investment)
     /// @param _user User address
