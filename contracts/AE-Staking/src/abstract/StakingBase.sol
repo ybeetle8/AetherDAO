@@ -148,7 +148,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
     // Fee collection
     address public feeRecipient;
-    uint256 public constant REDEMPTION_FEE_RATE = 100; // 1% = 100 basis points
+    uint256 public constant REDEMPTION_FEE_RATE = 60; // 0.6% = 60 basis points
 
     // 7-day stake usage tracking
     mapping(address => bool) public hasUsed7DayStake;

@@ -847,38 +847,18 @@ abstract contract AEBase is ERC20, Ownable {
             );
 
             if (usdtAmountFromProfitTax > 0) {
-                // 15% → 添加流动性并销毁 LP
-                uint256 liquidityShare = (usdtAmountFromProfitTax * 15) / 100;
+                // 60% → 添加流动性并销毁 LP
+                uint256 liquidityShare = (usdtAmountFromProfitTax * 60) / 100;
                 if (liquidityShare > 0) {
                     _addLiquidityAndBurnLP(liquidityShare);
                 }
 
-                // 15% → weeklyTop15RewardAddress (USDT)
-                uint256 weeklyRewardShare = (usdtAmountFromProfitTax * 15) / 100;
+                // 40% → weeklyTop15RewardAddress (USDT)
+                uint256 weeklyRewardShare = (usdtAmountFromProfitTax * 40) / 100;
                 if (weeklyRewardShare > 0 && weeklyTop15RewardAddress != address(0)) {
                     IERC20(USDT).transfer(weeklyTop15RewardAddress, weeklyRewardShare);
                 }
 
-                // 10% → 买入 AE 后发送到 marketingFundAddress
-                uint256 marketingShare = (usdtAmountFromProfitTax * 10) / 100;
-                if (marketingShare > 0) {
-                    uint256 aeAmount = _swapUSDTForTokens(marketingShare);
-                    if (aeAmount > 0 && marketingFundAddress != address(0)) {
-                        super._update(address(this), marketingFundAddress, aeAmount);
-                    }
-                }
-
-                // 60% → 买入 AE 后销毁
-                uint256 burnShare = (usdtAmountFromProfitTax * 60) / 100;
-                if (burnShare > 0) {
-                    uint256 aeAmount = _swapUSDTForTokens(burnShare);
-                    if (aeAmount > 0) {
-                        super._update(address(this), DEAD_ADDRESS, aeAmount);
-                        emit TokensBurned(aeAmount);
-                    }
-                }
-
-                profitTaxToMarketing = marketingShare;
                 profitTaxToReferrer = weeklyRewardShare;
             }
         }

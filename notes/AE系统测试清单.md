@@ -120,8 +120,8 @@
 | 总收益 | totalReward = principal + interest | ⬜ |
 | 5% 教育基金扣除 | educationFundAddress 收到 5% | ⬜ |
 | 35% 团队奖励分配 | 按级差分配给推荐链 | ⬜ |
-| 1% 赎回费 | feeRecipient 收到 1% | ⬜ |
-| 用户实际收到 | 收到 59% 的总收益 | ⬜ |
+| 0.6% 赎回费 | feeRecipient 收到 0.6% | ⬜ |
+| 用户实际收到 | 收到 59.4% 的总收益 | ⬜ |
 | 质押记录删除 | stakes[user][stakeId] 被删除 | ⬜ |
 | 团队业绩扣减 | 推荐链上级 teamTotalInvestValue 扣减 | ⬜ |
 
@@ -138,8 +138,8 @@
 | 可用利息计算 | 总利息 - 已领利息 | ⬜ |
 | 5% 教育基金扣除 | educationFundAddress 收到 5% | ⬜ |
 | 35% 团队奖励分配 | 按级差分配给推荐链 | ⬜ |
-| 1% 赎回费 | feeRecipient 收到 1% | ⬜ |
-| 用户实际收到 | 收到 59% 的可用利息 | ⬜ |
+| 0.6% 赎回费 | feeRecipient 收到 0.6% | ⬜ |
+| 用户实际收到 | 收到 59.4% 的可用利息 | ⬜ |
 | 团队业绩不变 | teamTotalInvestValue 不扣减 | ⬜ |
 
 ---
