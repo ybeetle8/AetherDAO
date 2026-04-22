@@ -13,12 +13,12 @@ contract Staking is StakingBase {
     // =========================================================================
 
     constructor(
-        address _usdt,
+        address _usdx,
         address _router,
         address _rootAddress,
         address _feeRecipient,
         address _educationFundAddress
-    ) StakingBase(_usdt, _router, _rootAddress, _feeRecipient, _educationFundAddress) {}
+    ) StakingBase(_usdx, _router, _rootAddress, _feeRecipient, _educationFundAddress) {}
 
     // =========================================================================
     // ENVIRONMENT SPECIFIC CONSTANTS - MAINNET VALUES

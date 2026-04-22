@@ -58,7 +58,7 @@ interface IStaking {
     /**
      * @notice Individual stake record structure
      * @param stakeTime Timestamp when stake was created
-     * @param amount Principal amount staked (in USDT)
+     * @param amount Principal amount staked (in USDX)
      * @param status Whether stake has been withdrawn (true = withdrawn)
      * @param stakeIndex Staking tier (0=1day/0.3% daily, 1=7days/0.6% daily, 2=15days/1.0% daily, 3=30days/1.5% daily)
      */
@@ -95,19 +95,19 @@ interface IStaking {
      * @param stakeIndex Index of the stake record that was withdrawn
      * @param principalAmount Original staked amount
      * @param calculatedReward Total calculated reward (principal + interest)
-     * @param usdtReceived Actual USDT received from XF swap
+     * @param usdxReceived Actual USDX received from XF swap
      * @param aeTokensUsed Amount of AE tokens consumed in swap
      * @param referralFee Fee paid to referrer
      * @param teamFee Total team fees distributed
      * @param userPayout Net amount user actually received
-     * @param interestEarned Interest earned (usdtReceived - principalAmount)
+     * @param interestEarned Interest earned (usdxReceived - principalAmount)
      */
     struct WithdrawalRecord {
         uint40 withdrawalTime;
         uint256 stakeIndex;
         uint256 principalAmount;
         uint256 calculatedReward;
-        uint256 usdtReceived;
+        uint256 usdxReceived;
         uint256 aeTokensUsed;
         uint256 referralFee;
         uint256 teamFee;
@@ -155,7 +155,7 @@ interface IStaking {
      * @param stakeIndex Index of the withdrawn stake record
      * @param principalAmount Original staked amount
      * @param calculatedReward Total calculated reward
-     * @param usdtReceived Actual USDT received from swap
+     * @param usdxReceived Actual USDX received from swap
      * @param aeTokensUsed AE tokens consumed in swap
      * @param referralFee Fee paid to referrer
      * @param teamFee Total team fees distributed
@@ -168,7 +168,7 @@ interface IStaking {
         uint256 indexed stakeIndex,
         uint256 principalAmount,
         uint256 calculatedReward,
-        uint256 usdtReceived,
+        uint256 usdxReceived,
         uint256 aeTokensUsed,
         uint256 referralFee,
         uint256 teamFee,
@@ -267,8 +267,8 @@ interface IStaking {
     // =========================================================================
 
     /**
-     * @notice Stakes USDT tokens and mints staking tokens
-     * @param _amount Amount of USDT to stake
+     * @notice Stakes USDX tokens and mints staking tokens
+     * @param _amount Amount of USDX to stake
      * @param _stakeIndex Staking tier (0=1day/0.3% daily, 1=7days/0.6% daily, 2=15days/1.0% daily, 3=30days/1.5% daily)
      * @dev User must bind referral relationship via lockReferral() before staking
      * @dev Slippage protection is handled automatically within the contract
@@ -352,7 +352,7 @@ interface IStaking {
     /// @notice Checks if a user has preacher (market maker) status
     /// @param user Address to check
     /// @return True if user is a preacher, false otherwise
-    /// @dev A preacher is a user who has staked at least 200 USDT
+    /// @dev A preacher is a user who has staked at least 200 USDX
     function isPreacher(address user) external view returns (bool);
 
     /// @notice Checks if a user has bound their referral relationship
@@ -438,7 +438,7 @@ interface IStaking {
     /**
      * @notice Gets remaining stake capacity for a user
      * @param user User address
-     * @return remaining Remaining stake capacity in USDT
+     * @return remaining Remaining stake capacity in USDX
      */
     function getRemainingStakeCapacity(
         address user
@@ -480,7 +480,7 @@ interface IStaking {
     // =========================================================================
 
     /**
-     * @notice Synchronizes USDT balance with the pool
+     * @notice Synchronizes USDX balance with the pool
      */
     function sync() external;
 
@@ -492,9 +492,9 @@ interface IStaking {
     function emergencyWithdrawAE(address to, uint256 _amount) external;
 
     /**
-     * @notice Emergency withdrawal of USDT tokens (owner only)
+     * @notice Emergency withdrawal of USDX tokens (owner only)
      * @param to Recipient address
      * @param _amount Amount to withdraw
      */
-    function emergencyWithdrawUSDT(address to, uint256 _amount) external;
+    function emergencyWithdrawUSDX(address to, uint256 _amount) external;
 }

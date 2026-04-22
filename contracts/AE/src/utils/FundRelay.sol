@@ -6,7 +6,7 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 /**
  * @title FundRelay
  * @notice Dedicated fund relay contract to solve INVALID_TO issues during AE contract swaps
- * @dev Acts as an intermediary between AE contract and Uniswap Router, safely handling USDT transfers
+ * @dev Acts as an intermediary between AE contract and Uniswap Router, safely handling USDX transfers
  * @author AE Protocol Team
  * @custom:security-contact security@ae.com
  */
@@ -18,8 +18,8 @@ contract FundRelay {
     /// @notice AE contract address
     address public immutable AE_CONTRACT;
 
-    /// @notice USDT token address
-    address public immutable USDT;
+    /// @notice USDX token address
+    address public immutable USDX;
 
     /// @notice Emergency withdrawal address (usually owner)
     address public immutable EMERGENCY_RECIPIENT;
@@ -28,11 +28,11 @@ contract FundRelay {
     // Events
     // =========================================================================
 
-    /// @notice Emitted when USDT is received
-    event USDTReceived(uint256 amount, address indexed from);
+    /// @notice Emitted when USDX is received
+    event USDXReceived(uint256 amount, address indexed from);
 
-    /// @notice Emitted when USDT is forwarded
-    event USDTForwarded(uint256 amount, address indexed to);
+    /// @notice Emitted when USDX is forwarded
+    event USDXForwarded(uint256 amount, address indexed to);
 
     /// @notice Emitted when emergency withdrawal occurs
     event EmergencyWithdraw(uint256 amount, address indexed to);
@@ -76,27 +76,27 @@ contract FundRelay {
     /**
      * @notice Initializes the FundRelay contract
      * @param _aeContract AE contract address
-     * @param _usdt USDT token address
+     * @param _usdx USDX token address
      * @param _emergencyRecipient Emergency withdrawal recipient address
      */
     constructor(
         address _aeContract,
-        address _usdt,
+        address _usdx,
         address _emergencyRecipient
     ) {
         require(_aeContract != address(0), "Invalid AE contract");
-        require(_usdt != address(0), "Invalid USDT");
+        require(_usdx != address(0), "Invalid USDX");
         require(
             _emergencyRecipient != address(0),
             "Invalid emergency recipient"
         );
 
         AE_CONTRACT = _aeContract;
-        USDT = _usdt;
+        USDX = _usdx;
         EMERGENCY_RECIPIENT = _emergencyRecipient;
 
-        // Pre-approve AE contract to withdraw all USDT
-        IERC20(_usdt).approve(_aeContract, type(uint256).max);
+        // Pre-approve AE contract to withdraw all USDX
+        IERC20(_usdx).approve(_aeContract, type(uint256).max);
     }
 
     // =========================================================================
@@ -104,21 +104,21 @@ contract FundRelay {
     // =========================================================================
 
     /**
-     * @notice Receive USDT and immediately forward to AE contract
-     * @dev This function will be called by Uniswap Router to receive swapped USDT
-     * @return usdtAmount Amount of USDT forwarded
+     * @notice Receive USDX and immediately forward to AE contract
+     * @dev This function will be called by Uniswap Router to receive swapped USDX
+     * @return usdxAmount Amount of USDX forwarded
      */
-    function receiveAndForward() external returns (uint256 usdtAmount) {
-        uint256 balance = IERC20(USDT).balanceOf(address(this));
+    function receiveAndForward() external returns (uint256 usdxAmount) {
+        uint256 balance = IERC20(USDX).balanceOf(address(this));
 
         if (balance > 0) {
-            emit USDTReceived(balance, msg.sender);
+            emit USDXReceived(balance, msg.sender);
 
             // Immediately forward to AE contract
-            bool success = IERC20(USDT).transfer(AE_CONTRACT, balance);
+            bool success = IERC20(USDX).transfer(AE_CONTRACT, balance);
             if (!success) revert TransferFailed();
 
-            emit USDTForwarded(balance, AE_CONTRACT);
+            emit USDXForwarded(balance, AE_CONTRACT);
             return balance;
         }
 
@@ -126,26 +126,26 @@ contract FundRelay {
     }
 
     /**
-     * @notice AE contract withdraws USDT
+     * @notice AE contract withdraws USDX
      * @param amount Amount to withdraw
      * @dev Only AE contract can call this function
      */
     function withdrawToAE(uint256 amount) external onlyAE {
-        uint256 balance = IERC20(USDT).balanceOf(address(this));
+        uint256 balance = IERC20(USDX).balanceOf(address(this));
         if (balance < amount) revert InsufficientBalance();
 
-        bool success = IERC20(USDT).transfer(AE_CONTRACT, amount);
+        bool success = IERC20(USDX).transfer(AE_CONTRACT, amount);
         if (!success) revert TransferFailed();
 
-        emit USDTForwarded(amount, AE_CONTRACT);
+        emit USDXForwarded(amount, AE_CONTRACT);
     }
 
     /**
-     * @notice Get current USDT balance
-     * @return balance Current USDT balance in this contract
+     * @notice Get current USDX balance
+     * @return balance Current USDX balance in this contract
      */
-    function getUSDTBalance() external view returns (uint256 balance) {
-        return IERC20(USDT).balanceOf(address(this));
+    function getUSDXBalance() external view returns (uint256 balance) {
+        return IERC20(USDX).balanceOf(address(this));
     }
 
     /**
@@ -166,14 +166,14 @@ contract FundRelay {
     // =========================================================================
 
     /**
-     * @notice Emergency withdraw all USDT
+     * @notice Emergency withdraw all USDX
      * @dev Only emergency recipient can call this function, used for fund rescue in exceptional situations
      */
     function emergencyWithdraw() external onlyEmergency {
-        uint256 balance = IERC20(USDT).balanceOf(address(this));
+        uint256 balance = IERC20(USDX).balanceOf(address(this));
 
         if (balance > 0) {
-            bool success = IERC20(USDT).transfer(EMERGENCY_RECIPIENT, balance);
+            bool success = IERC20(USDX).transfer(EMERGENCY_RECIPIENT, balance);
             if (!success) revert TransferFailed();
 
             emit EmergencyWithdraw(balance, EMERGENCY_RECIPIENT);

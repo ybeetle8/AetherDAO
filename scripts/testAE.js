@@ -24,7 +24,7 @@ async function main() {
   const ae = await hre.ethers.getContractAt("contracts/AE/src/mainnet/AE.sol:AE", deployment.contracts.AE);
   const staking = await hre.ethers.getContractAt("contracts/AE-Staking/src/mainnet/Staking.sol:Staking", deployment.contracts.Staking);
   const pair = await hre.ethers.getContractAt("IUniswapV2Pair", deployment.contracts.Pair);
-  const usdc = await hre.ethers.getContractAt("IERC20", "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d");
+  const usdx = await hre.ethers.getContractAt("IERC20", "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d");
 
   console.log("=== 测试 1: 验证合约地址 ===");
   console.log("✓ AE 代币:", deployment.contracts.AE);
@@ -85,36 +85,36 @@ async function main() {
   console.log("代币0:", token0);
   console.log("代币1:", token1);
   console.log("AE 储备量:", hre.ethers.formatEther(aeReserve), "AE");
-  console.log("USDC 储备量:", hre.ethers.formatEther(usdcReserve), "USDC");
-  console.log("AE 价格:", (Number(hre.ethers.formatEther(usdcReserve)) / Number(hre.ethers.formatEther(aeReserve))).toFixed(6), "USDC");
+  console.log("USDX 储备量:", hre.ethers.formatEther(usdcReserve), "USDX");
+  console.log("AE 价格:", (Number(hre.ethers.formatEther(usdcReserve)) / Number(hre.ethers.formatEther(aeReserve))).toFixed(6), "USDX");
   console.log("✓ 流动性池验证完成\n");
 
-  console.log("=== 测试 6: 测试购买 AE (用 USDC 兑换 AE) ===");
-  const buyAmount = hre.ethers.parseEther("100"); // 用 100 USDC 购买
+  console.log("=== 测试 6: 测试购买 AE (用 USDX 兑换 AE) ===");
+  const buyAmount = hre.ethers.parseEther("100"); // 用 100 USDX 购买
 
-  // 为测试钱包设置 USDC
+  // 为测试钱包设置 USDX
   const usdcBalanceSlot = 9;
   const testWalletBalanceSlot = hre.ethers.solidityPackedKeccak256(
     ["uint256", "uint256"],
     [testWallet.address, usdcBalanceSlot]
   );
   await hre.network.provider.send("hardhat_setStorageAt", [
-    await usdc.getAddress(),
+    await usdx.getAddress(),
     testWalletBalanceSlot,
     hre.ethers.toBeHex(hre.ethers.parseEther("10000"), 32),
   ]);
 
-  const testWalletUSDCBefore = await usdc.balanceOf(testWallet.address);
+  const testWalletUSDXBefore = await usdx.balanceOf(testWallet.address);
   const testWalletAEBefore = await ae.balanceOf(testWallet.address);
-  console.log("测试钱包 USDC 余额（交易前）:", hre.ethers.formatEther(testWalletUSDCBefore), "USDC");
+  console.log("测试钱包 USDX 余额（交易前）:", hre.ethers.formatEther(testWalletUSDXBefore), "USDX");
   console.log("测试钱包 AE 余额（交易前）:", hre.ethers.formatEther(testWalletAEBefore), "AE");
 
   // 授权并兑换
   const router = await hre.ethers.getContractAt("IUniswapV2Router02", "0x10ED43C718714eb63d5aA57B78B54704E256024E");
-  await usdc.connect(testWallet).approve(await router.getAddress(), buyAmount);
+  await usdx.connect(testWallet).approve(await router.getAddress(), buyAmount);
 
   const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-  const path = [await usdc.getAddress(), deployment.contracts.AE];
+  const path = [await usdx.getAddress(), deployment.contracts.AE];
 
   try {
     const swapTx = await router.connect(testWallet).swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -126,11 +126,11 @@ async function main() {
     );
     await swapTx.wait();
 
-    const testWalletUSDCAfter = await usdc.balanceOf(testWallet.address);
+    const testWalletUSDXAfter = await usdx.balanceOf(testWallet.address);
     const testWalletAEAfter = await ae.balanceOf(testWallet.address);
     const aeReceived = testWalletAEAfter - testWalletAEBefore;
 
-    console.log("测试钱包 USDC 余额（交易后）:", hre.ethers.formatEther(testWalletUSDCAfter), "USDC");
+    console.log("测试钱包 USDX 余额（交易后）:", hre.ethers.formatEther(testWalletUSDXAfter), "USDX");
     console.log("测试钱包 AE 余额（交易后）:", hre.ethers.formatEther(testWalletAEAfter), "AE");
     console.log("收到的 AE:", hre.ethers.formatEther(aeReceived), "AE");
     console.log("✓ 购买测试成功\n");

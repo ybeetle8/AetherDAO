@@ -13,7 +13,7 @@ contract AE is AEBase {
     // =========================================================================
 
     constructor(
-        address _usdt,
+        address _usdx,
         address _router,
         address _staking,
         address _marketingAddress,
@@ -21,7 +21,7 @@ contract AE is AEBase {
         address _buyTaxCommunityRewardAddress,
         address _marketingFundAddress,
         address _weeklyTop15RewardAddress
-    ) AEBase(_usdt, _router, _staking, _marketingAddress, _buyTaxNodeRewardAddress, _buyTaxCommunityRewardAddress, _marketingFundAddress, _weeklyTop15RewardAddress) {}
+    ) AEBase(_usdx, _router, _staking, _marketingAddress, _buyTaxNodeRewardAddress, _buyTaxCommunityRewardAddress, _marketingFundAddress, _weeklyTop15RewardAddress) {}
 
     // =========================================================================
     // ENVIRONMENT SPECIFIC CONSTANTS - MAINNET VALUES

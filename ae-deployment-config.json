@@ -1,7 +1,7 @@
 {
   "network": "localhost",
   "addresses": {
-    "usdt": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    "usdx": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     "pancakeRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
     "pancakeFactory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
@@ -20,7 +20,7 @@
     "stakingReserve": "20000000",
     "initialLiquidity": {
       "ae": "60000000",
-      "usdt": "60000"
+      "usdx": "60000"
     },
     "nodeRewardAllocation": "18740000",
     "crossChainReserveAllocation": "1260000"

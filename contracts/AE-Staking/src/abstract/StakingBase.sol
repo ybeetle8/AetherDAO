@@ -105,7 +105,7 @@ abstract contract StakingBase is Ownable, IStaking {
     // IMMUTABLE VARIABLES
     // =========================================================================
 
-    address internal immutable USDT;
+    address internal immutable USDX;
     IUniswapV2Router02 public immutable ROUTER;
     uint8 immutable maxD = MAX_REFERRAL_DEPTH;
 
@@ -167,7 +167,7 @@ abstract contract StakingBase is Ownable, IStaking {
         address indexed user,
         uint256 stakeIndex,
         uint256 aeAmount,
-        uint256 usdtAmount,
+        uint256 usdxAmount,
         address indexed feeRecipient,
         uint256 timestamp
     );
@@ -202,23 +202,23 @@ abstract contract StakingBase is Ownable, IStaking {
     // =========================================================================
 
     constructor(
-        address _usdt,
+        address _usdx,
         address _router,
         address _rootAddress,
         address _feeRecipient,
         address _educationFundAddress
     ) Ownable(msg.sender) {
-        require(_usdt != address(0), "Invalid USDT address");
+        require(_usdx != address(0), "Invalid USDX address");
         require(_router != address(0), "Invalid router address");
         require(_educationFundAddress != address(0), "Invalid education fund address");
 
-        USDT = _usdt;
+        USDX = _usdx;
         ROUTER = IUniswapV2Router02(_router);
         rootAddress = _rootAddress;
         feeRecipient = _feeRecipient; // Initialize fee recipient to root address
         educationFundAddress = _educationFundAddress;
 
-        IERC20(_usdt).approve(_router, type(uint256).max);
+        IERC20(_usdx).approve(_router, type(uint256).max);
         _updateRatesForMode();
     }
 
@@ -245,12 +245,12 @@ abstract contract StakingBase is Ownable, IStaking {
         uint256 stakeIndex
     ) external onlyEOA returns (uint256 totalReward) {
         (uint256 calculatedReward, uint256 principalAmount) = _burn(stakeIndex);
-        (uint256 usdtReceived, uint256 aeTokensUsed) = _swapAEForReward(
+        (uint256 usdxReceived, uint256 aeTokensUsed) = _swapAEForReward(
             calculatedReward
         );
 
-        uint256 interestEarned = usdtReceived > principalAmount
-            ? usdtReceived - principalAmount
+        uint256 interestEarned = usdxReceived > principalAmount
+            ? usdxReceived - principalAmount
             : 0;
 
         address[] memory referralChain = getReferrals(msg.sender, maxD);
@@ -262,16 +262,16 @@ abstract contract StakingBase is Ownable, IStaking {
 
         _updateTeamInvestmentValues(msg.sender, principalAmount, false);
 
-        uint256 userPayout = usdtReceived - educationFund - teamFee;
+        uint256 userPayout = usdxReceived - educationFund - teamFee;
 
         // Calculate and collect 1% redemption fee
-        uint256 expectedRedemptionFeeUSDT = (userPayout * REDEMPTION_FEE_RATE) /
+        uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
-        if (expectedRedemptionFeeUSDT > 0 && feeRecipient != address(0)) {
-            // Convert 1% of AE to USDT for fee collection
+        if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
+            // Convert 1% of AE to USDX for fee collection
             (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
-                expectedRedemptionFeeUSDT
+                expectedRedemptionFeeUSDX
             );
 
             // Emit fee collection event
@@ -279,7 +279,7 @@ abstract contract StakingBase is Ownable, IStaking {
                 msg.sender,
                 stakeIndex,
                 redemptionFeeAEUsed,
-                expectedRedemptionFeeUSDT,
+                expectedRedemptionFeeUSDX,
                 feeRecipient,
                 block.timestamp
             );
@@ -291,7 +291,7 @@ abstract contract StakingBase is Ownable, IStaking {
                 stakeIndex,
                 principalAmount,
                 calculatedReward,
-                usdtReceived,
+                usdxReceived,
                 aeTokensUsed,
                 educationFund,
                 teamFee,
@@ -299,7 +299,7 @@ abstract contract StakingBase is Ownable, IStaking {
                 interestEarned
             );
 
-            IERC20(USDT).transfer(msg.sender, userPayout);
+            IERC20(USDX).transfer(msg.sender, userPayout);
         }
 
         AE.recycle(aeTokensUsed);
@@ -344,27 +344,27 @@ abstract contract StakingBase is Ownable, IStaking {
         // Update withdrawn interest BEFORE external calls (Checks-Effects-Interactions)
         withdrawnInterest[user][stakeIndex] = alreadyWithdrawn + availableInterest;
 
-        // Swap AE for USDT to pay the interest
-        (uint256 usdtReceived, uint256 aeTokensUsed) = _swapAEForReward(
+        // Swap AE for USDX to pay the interest
+        (uint256 usdxReceived, uint256 aeTokensUsed) = _swapAEForReward(
             availableInterest
         );
 
         // Distribute fees (same as unstake)
         address[] memory referralChain = getReferrals(user, maxD);
-        uint256 educationFund = _distributeEducationFund(user, usdtReceived);
-        uint256 teamFee = _distributeTeamReward(referralChain, usdtReceived);
+        uint256 educationFund = _distributeEducationFund(user, usdxReceived);
+        uint256 teamFee = _distributeTeamReward(referralChain, usdxReceived);
 
         // Calculate user payout
-        uint256 userPayout = usdtReceived - educationFund - teamFee;
+        uint256 userPayout = usdxReceived - educationFund - teamFee;
 
         // Calculate and collect 1% redemption fee
-        uint256 expectedRedemptionFeeUSDT = (userPayout * REDEMPTION_FEE_RATE) /
+        uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
-        if (expectedRedemptionFeeUSDT > 0 && feeRecipient != address(0)) {
-            // Convert 1% of AE to USDT for fee collection
+        if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
+            // Convert 1% of AE to USDX for fee collection
             (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
-                expectedRedemptionFeeUSDT
+                expectedRedemptionFeeUSDX
             );
 
             // Emit fee collection event
@@ -372,14 +372,14 @@ abstract contract StakingBase is Ownable, IStaking {
                 user,
                 stakeIndex,
                 redemptionFeeAEUsed,
-                expectedRedemptionFeeUSDT,
+                expectedRedemptionFeeUSDX,
                 feeRecipient,
                 block.timestamp
             );
         }
 
-        // Transfer USDT to user
-        IERC20(USDT).transfer(user, userPayout);
+        // Transfer USDX to user
+        IERC20(USDX).transfer(user, userPayout);
 
         // Recycle AE tokens
         AE.recycle(aeTokensUsed);
@@ -389,7 +389,7 @@ abstract contract StakingBase is Ownable, IStaking {
             user,
             stakeIndex,
             availableInterest,
-            usdtReceived,
+            usdxReceived,
             aeTokensUsed,
             educationFund,
             teamFee,
@@ -432,9 +432,9 @@ abstract contract StakingBase is Ownable, IStaking {
     }
 
     function sync() external {
-        uint256 w_bal = IERC20(USDT).balanceOf(address(this));
+        uint256 w_bal = IERC20(USDX).balanceOf(address(this));
         address pair = AE.getUniswapV2Pair();
-        IERC20(USDT).transfer(pair, w_bal);
+        IERC20(USDX).transfer(pair, w_bal);
         IUniswapV2Pair(pair).sync();
     }
 
@@ -576,33 +576,33 @@ abstract contract StakingBase is Ownable, IStaking {
     }
 
     function previewStakeOutput(
-        uint256 usdtAmount
+        uint256 usdxAmount
     )
         external
         view
         returns (uint256 halfUsdtAmount, uint256 expectedAE, uint256 minAEOut)
     {
-        halfUsdtAmount = usdtAmount / LIQUIDITY_SPLIT_DIVISOR;
+        halfUsdtAmount = usdxAmount / LIQUIDITY_SPLIT_DIVISOR;
 
         address pair = AE.getUniswapV2Pair();
         (uint112 reserve0, uint112 reserve1, ) = IUniswapV2Pair(pair)
             .getReserves();
 
-        uint112 reserveUSDT;
+        uint112 reserveUSDX;
         uint112 reserveAE;
 
         address token0 = IUniswapV2Pair(pair).token0();
-        if (token0 == address(USDT)) {
-            reserveUSDT = reserve0;
+        if (token0 == address(USDX)) {
+            reserveUSDX = reserve0;
             reserveAE = reserve1;
         } else {
-            reserveUSDT = reserve1;
+            reserveUSDX = reserve1;
             reserveAE = reserve0;
         }
 
         expectedAE = ROUTER.getAmountOut(
             halfUsdtAmount,
-            reserveUSDT,
+            reserveUSDX,
             reserveAE
         );
         minAEOut = _calculateMinimumOutput(halfUsdtAmount);
@@ -837,8 +837,8 @@ abstract contract StakingBase is Ownable, IStaking {
 
     function maxStakeAmount() public view returns (uint256 maxAmount) {
         uint256 recentInflow = getRecentNetworkInflow();
-        uint112 poolReserveUsdt = AE.getUSDTReserve();
-        uint256 onePercentOfPool = poolReserveUsdt / POOL_PERCENTAGE_DIVISOR;
+        uint112 poolReserveUsdx = AE.getUSDXReserve();
+        uint256 onePercentOfPool = poolReserveUsdx / POOL_PERCENTAGE_DIVISOR;
 
         if (recentInflow > onePercentOfPool) {
             return 0;
@@ -1021,13 +1021,13 @@ abstract contract StakingBase is Ownable, IStaking {
 
     function _swapAEForReward(
         uint256 calculatedReward
-    ) private returns (uint256 usdtReceived, uint256 aeTokensUsed) {
+    ) private returns (uint256 usdxReceived, uint256 aeTokensUsed) {
         uint256 aeBalanceBefore = AE.balanceOf(address(this));
-        uint256 usdtBalanceBefore = IERC20(USDT).balanceOf(address(this));
+        uint256 usdxBalanceBefore = IERC20(USDX).balanceOf(address(this));
 
         address[] memory swapPath = new address[](2);
         swapPath[0] = address(AE);
-        swapPath[1] = address(USDT);
+        swapPath[1] = address(USDX);
 
         uint256 maxXFInput = _calculateMaxAEInput(
             calculatedReward,
@@ -1043,14 +1043,14 @@ abstract contract StakingBase is Ownable, IStaking {
         );
 
         uint256 aeBalanceAfter = AE.balanceOf(address(this));
-        usdtReceived =
-            IERC20(USDT).balanceOf(address(this)) -
-            usdtBalanceBefore;
+        usdxReceived =
+            IERC20(USDX).balanceOf(address(this)) -
+            usdxBalanceBefore;
         aeTokensUsed = aeBalanceBefore - aeBalanceAfter;
     }
 
     function _calculateMaxAEInput(
-        uint256 usdtNeeded,
+        uint256 usdxNeeded,
         uint256 availableXF
     ) private view returns (uint256 maxInput) {
         address pair = AE.getUniswapV2Pair();
@@ -1059,20 +1059,20 @@ abstract contract StakingBase is Ownable, IStaking {
             uint112 reserve1,
             uint32
         ) {
-            (uint112 aeReserve, uint112 usdtReserve) = IUniswapV2Pair(pair)
+            (uint112 aeReserve, uint112 usdxReserve) = IUniswapV2Pair(pair)
                 .token0() == address(AE)
                 ? (reserve0, reserve1)
                 : (reserve1, reserve0);
 
-            if (aeReserve > 0 && usdtReserve > 0) {
-                uint256 maxSafeUsdtRequest = usdtReserve / 2;
-                uint256 safeUsdtNeeded = usdtNeeded > maxSafeUsdtRequest
-                    ? maxSafeUsdtRequest
-                    : usdtNeeded;
+            if (aeReserve > 0 && usdxReserve > 0) {
+                uint256 maxSafeUsdxRequest = usdxReserve / 2;
+                uint256 safeUsdxNeeded = usdxNeeded > maxSafeUsdxRequest
+                    ? maxSafeUsdxRequest
+                    : usdxNeeded;
 
-                if (safeUsdtNeeded < usdtReserve) {
-                    uint256 estimatedXF = (safeUsdtNeeded * aeReserve) /
-                        (usdtReserve - safeUsdtNeeded);
+                if (safeUsdxNeeded < usdxReserve) {
+                    uint256 estimatedXF = (safeUsdxNeeded * aeReserve) /
+                        (usdxReserve - safeUsdxNeeded);
                     uint256 withSlippage = (estimatedXF * 150) / 100;
 
                     maxInput = _min256(withSlippage, availableXF);
@@ -1104,7 +1104,7 @@ abstract contract StakingBase is Ownable, IStaking {
             fee = (_interset * REFERRAL_REWARD_RATE) / PERCENTAGE_BASE;
         }
         // 直接将 5% 奖励转给教育基金地址
-        IERC20(USDT).transfer(educationFundAddress, fee);
+        IERC20(USDX).transfer(educationFundAddress, fee);
     }
 
     function _distributeTeamReward(
@@ -1116,7 +1116,7 @@ abstract contract StakingBase is Ownable, IStaking {
         }
 
         if (referralChain.length == 0) {
-            IERC20(USDT).transfer(rootAddress, fee);
+            IERC20(USDX).transfer(rootAddress, fee);
 
             address[7] memory emptyRecipients;
             uint256[7] memory emptyAmounts;
@@ -1157,7 +1157,7 @@ abstract contract StakingBase is Ownable, IStaking {
         uint256 marketingAmount = 0;
         if (totalDistributed < fee) {
             marketingAmount = fee - totalDistributed;
-            IERC20(USDT).transfer(rootAddress, marketingAmount);
+            IERC20(USDX).transfer(rootAddress, marketingAmount);
         }
 
         emit TeamRewardDistributionCompleted(
@@ -1218,7 +1218,7 @@ abstract contract StakingBase is Ownable, IStaking {
                         PERCENTAGE_BASE;
 
                     if (memberReward > 0) {
-                        IERC20(USDT).transfer(referralChain[i], memberReward);
+                        IERC20(USDX).transfer(referralChain[i], memberReward);
                         totalDistributed += memberReward;
 
                         tierRecipients[currentTier - 1] = referralChain[i];
@@ -1294,20 +1294,20 @@ abstract contract StakingBase is Ownable, IStaking {
         }
     }
 
-    function _swapAndAddLiquidity(uint160 usdtAmount) private {
-        IERC20(USDT).transferFrom(msg.sender, address(this), usdtAmount);
+    function _swapAndAddLiquidity(uint160 usdxAmount) private {
+        IERC20(USDX).transferFrom(msg.sender, address(this), usdxAmount);
 
         address[] memory swapPath = new address[](2);
-        swapPath[0] = address(USDT);
+        swapPath[0] = address(USDX);
         swapPath[1] = address(AE);
 
         uint256 aeBalanceBefore = AE.balanceOf(address(this));
-        uint256 usdtToSwap = usdtAmount / LIQUIDITY_SPLIT_DIVISOR;
+        uint256 usdxToSwap = usdxAmount / LIQUIDITY_SPLIT_DIVISOR;
 
-        uint256 minAeTokensOut = _calculateMinimumOutput(usdtToSwap);
+        uint256 minAeTokensOut = _calculateMinimumOutput(usdxToSwap);
 
         ROUTER.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-            usdtToSwap,
+            usdxToSwap,
             minAeTokensOut,
             swapPath,
             address(this),
@@ -1317,11 +1317,11 @@ abstract contract StakingBase is Ownable, IStaking {
         uint256 aeBalanceAfter = AE.balanceOf(address(this));
         uint256 aeTokensReceived = aeBalanceAfter - aeBalanceBefore;
 
-        uint256 remainingUsdt = usdtAmount - usdtToSwap;
+        uint256 remainingUsdx = usdxAmount - usdxToSwap;
         ROUTER.addLiquidity(
-            address(USDT),
+            address(USDX),
             address(AE),
-            remainingUsdt,
+            remainingUsdx,
             aeTokensReceived,
             0,
             0,
@@ -1408,32 +1408,32 @@ abstract contract StakingBase is Ownable, IStaking {
     }
 
     function _calculateMinimumOutput(
-        uint256 usdtAmountIn
+        uint256 usdxAmountIn
     ) private view returns (uint256 minAmountOut) {
         address pair = AE.getUniswapV2Pair();
         (uint112 reserve0, uint112 reserve1, ) = IUniswapV2Pair(pair)
             .getReserves();
 
-        uint112 reserveUSDT;
+        uint112 reserveUSDX;
         uint112 reserveAE;
 
         address token0 = IUniswapV2Pair(pair).token0();
-        if (token0 == address(USDT)) {
-            reserveUSDT = reserve0;
+        if (token0 == address(USDX)) {
+            reserveUSDX = reserve0;
             reserveAE = reserve1;
         } else {
-            reserveUSDT = reserve1;
+            reserveUSDX = reserve1;
             reserveAE = reserve0;
         }
 
         uint256 expectedOutput = ROUTER.getAmountOut(
-            usdtAmountIn,
-            reserveUSDT,
+            usdxAmountIn,
+            reserveUSDX,
             reserveAE
         );
 
-        uint256 priceImpact = (usdtAmountIn * BASIS_POINTS_DENOMINATOR) /
-            reserveUSDT;
+        uint256 priceImpact = (usdxAmountIn * BASIS_POINTS_DENOMINATOR) /
+            reserveUSDX;
 
         uint256 slippageTolerance;
         if (priceImpact <= PRICE_IMPACT_THRESHOLD) {
@@ -1467,7 +1467,7 @@ abstract contract StakingBase is Ownable, IStaking {
         uint256 stakeIndex,
         uint256 principalAmount,
         uint256 calculatedReward,
-        uint256 usdtReceived,
+        uint256 usdxReceived,
         uint256 aeTokensUsed,
         uint256 referralFee,
         uint256 teamFee,
@@ -1482,7 +1482,7 @@ abstract contract StakingBase is Ownable, IStaking {
                 stakeIndex: stakeIndex,
                 principalAmount: principalAmount,
                 calculatedReward: calculatedReward,
-                usdtReceived: usdtReceived,
+                usdxReceived: usdxReceived,
                 aeTokensUsed: aeTokensUsed,
                 referralFee: referralFee,
                 teamFee: teamFee,
@@ -1499,7 +1499,7 @@ abstract contract StakingBase is Ownable, IStaking {
             stakeIndex,
             principalAmount,
             calculatedReward,
-            usdtReceived,
+            usdxReceived,
             aeTokensUsed,
             referralFee,
             teamFee,
@@ -1527,11 +1527,11 @@ abstract contract StakingBase is Ownable, IStaking {
         AE.transfer(to, _amount);
     }
 
-    function emergencyWithdrawUSDT(
+    function emergencyWithdrawUSDX(
         address to,
         uint256 _amount
     ) external onlyOwner {
-        IERC20(USDT).transfer(to, _amount);
+        IERC20(USDX).transfer(to, _amount);
     }
 
     function setFeeRecipient(address _feeRecipient) external onlyOwner {

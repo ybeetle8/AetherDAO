@@ -5,9 +5,9 @@ const { ethers } = require("hardhat");
 const deploymentConfig = require("../ae-deployment-config.json");
 const deployment = require("../ae-deployment.json");
 
-// USDC 地址 (配置文件中的 usdt 实际是 USDC)
-const USDC_ADDRESS = deploymentConfig.addresses.usdt;
-const USDC_WHALE = "0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"; // BSC USDC 大户
+// USDX 稳定币地址
+const USDX_ADDRESS = deploymentConfig.addresses.usdx;
+const USDX_WHALE = "0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"; // BSC USDX 大户
 
 // 颜色输出
 const colors = {
@@ -41,9 +41,9 @@ function logSection(message) {
     log("=".repeat(60), colors.blue);
 }
 
-// 为地址分配 USDC（使用 setStorageAt 方法）
-async function fundAccountWithUSDC(address, amount) {
-    // BSC USDC 可能使用不同的存储槽，尝试常见的槽位
+// 为地址分配 USDX（使用 setStorageAt 方法）
+async function fundAccountWithUSDX(address, amount) {
+    // BSC USDX 可能使用不同的存储槽，尝试常见的槽位
     const possibleSlots = [0, 1, 2, 9, 51];
 
     for (const slot of possibleSlots) {
@@ -54,7 +54,7 @@ async function fundAccountWithUSDC(address, amount) {
 
             // 设置余额
             await hre.network.provider.send("hardhat_setStorageAt", [
-                USDC_ADDRESS,
+                USDX_ADDRESS,
                 storageSlot,
                 ethers.zeroPadValue(ethers.toBeHex(amount), 32)
             ]);
@@ -63,14 +63,14 @@ async function fundAccountWithUSDC(address, amount) {
             await hre.network.provider.send("evm_mine", []);
 
             // 检查余额
-            const usdc = await ethers.getContractAt(
+            const usdx = await ethers.getContractAt(
                 ["function balanceOf(address) view returns (uint256)"],
-                USDC_ADDRESS
+                USDX_ADDRESS
             );
-            const balance = await usdc.balanceOf(address);
+            const balance = await usdx.balanceOf(address);
 
             if (balance >= amount) {
-                logInfo(`已为 ${address} 分配 ${ethers.formatUnits(amount, 18)} USDC (使用槽位 ${slot})`);
+                logInfo(`已为 ${address} 分配 ${ethers.formatUnits(amount, 18)} USDX (使用槽位 ${slot})`);
                 return;
             }
         } catch (e) {
@@ -78,7 +78,7 @@ async function fundAccountWithUSDC(address, amount) {
         }
     }
 
-    throw new Error("无法设置 USDC 余额，所有槽位都失败");
+    throw new Error("无法设置 USDX 余额，所有槽位都失败");
 }
 
 // 为地址分配 BNB (用于 gas)
@@ -111,16 +111,16 @@ async function main() {
     logInfo(`  用户3 (二级被推荐人): ${wallet3.address}`);
 
     // 为测试账户分配资金
-    const fundAmount = ethers.parseUnits("1000", 18); // 1000 USDC
+    const fundAmount = ethers.parseUnits("1000", 18); // 1000 USDX
     const bnbAmount = ethers.parseEther("0.1"); // 0.1 BNB for gas
 
     await fundAccountWithBNB(wallet1.address, bnbAmount);
     await fundAccountWithBNB(wallet2.address, bnbAmount);
     await fundAccountWithBNB(wallet3.address, bnbAmount);
 
-    await fundAccountWithUSDC(wallet1.address, fundAmount);
-    await fundAccountWithUSDC(wallet2.address, fundAmount);
-    await fundAccountWithUSDC(wallet3.address, fundAmount);
+    await fundAccountWithUSDX(wallet1.address, fundAmount);
+    await fundAccountWithUSDX(wallet2.address, fundAmount);
+    await fundAccountWithUSDX(wallet3.address, fundAmount);
 
     // =========================================================================
     // 测试 1: 用户首次绑定推荐人

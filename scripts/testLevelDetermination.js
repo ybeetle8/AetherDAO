@@ -5,8 +5,8 @@ const { ethers } = require("hardhat");
 const deploymentConfig = require("../ae-deployment-config.json");
 const deployment = require("../ae-deployment.json");
 
-// USDC 地址 (配置文件中的 usdt 实际是 USDC)
-const USDC_ADDRESS = deploymentConfig.addresses.usdt;
+// USDX 稳定币地址
+const USDX_ADDRESS = deploymentConfig.addresses.usdx;
 
 // 级别阈值配置
 const LEVEL_THRESHOLDS = [
@@ -21,14 +21,14 @@ const LEVEL_THRESHOLDS = [
     { level: 9, team: 30000000, personal: 10000000 }
 ];
 
-// 辅助函数：格式化 USDC 金额
-function formatUSDC(amount) {
+// 辅助函数：格式化 USDX 金额
+function formatUSDX(amount) {
     return ethers.parseUnits(amount.toString(), 18);
 }
 
-// 辅助函数：为地址分配 USDC (使用存储槽修改)
-async function allocateUSDC(address, amount) {
-    // BSC USDC 使用槽位 9 存储余额
+// 辅助函数：为地址分配 USDX (使用存储槽修改)
+async function allocateUSDX(address, amount) {
+    // BSC USDX 使用槽位 9 存储余额
     const slot = 9;
     const accountPadded = ethers.zeroPadValue(address, 32);
     const slotPadded = ethers.zeroPadValue(ethers.toBeHex(slot), 32);
@@ -36,7 +36,7 @@ async function allocateUSDC(address, amount) {
 
     // 设置余额
     await hre.network.provider.send("hardhat_setStorageAt", [
-        USDC_ADDRESS,
+        USDX_ADDRESS,
         storageSlot,
         ethers.zeroPadValue(ethers.toBeHex(amount), 32)
     ]);
@@ -56,8 +56,8 @@ async function createUserAndStake(stakingContract, usdcContract, amount) {
         value: ethers.parseEther("1")
     });
 
-    // 分配 USDC
-    await allocateUSDC(wallet.address, amount);
+    // 分配 USDX
+    await allocateUSDX(wallet.address, amount);
 
     // 授权并质押
     await usdcContract.connect(wallet).approve(stakingContract.target, amount);
@@ -78,8 +78,8 @@ async function buildTeamStructure(stakingContract, usdcContract, root, teamAmoun
 
     while (remainingTeamAmount > 0n) {
         // 每个下级质押一定金额
-        const stakeAmount = remainingTeamAmount > formatUSDC(10000)
-            ? formatUSDC(10000)
+        const stakeAmount = remainingTeamAmount > formatUSDX(10000)
+            ? formatUSDX(10000)
             : remainingTeamAmount;
 
         const referral = await createUserAndStake(stakingContract, usdcContract, stakeAmount);
@@ -103,7 +103,7 @@ async function testLevelDetermination(level, teamAmount, personalAmount, expecte
         ["function transfer(address to, uint256 amount) returns (bool)",
          "function balanceOf(address) view returns (uint256)",
          "function approve(address spender, uint256 amount) returns (bool)"],
-        USDC_ADDRESS
+        USDX_ADDRESS
     );
 
     // 创建测试用户
@@ -116,20 +116,20 @@ async function testLevelDetermination(level, teamAmount, personalAmount, expecte
         value: ethers.parseEther("2")
     });
 
-    // 分配 USDC (团队金额 + 个人金额)
-    const totalAmount = formatUSDC(teamAmount + personalAmount);
-    await allocateUSDC(user.address, totalAmount);
+    // 分配 USDX (团队金额 + 个人金额)
+    const totalAmount = formatUSDX(teamAmount + personalAmount);
+    await allocateUSDX(user.address, totalAmount);
 
     console.log(`  用户地址: ${user.address}`);
-    console.log(`  USDC 余额: ${ethers.formatUnits(await usdcContract.balanceOf(user.address), 18)}`);
+    console.log(`  USDX 余额: ${ethers.formatUnits(await usdcContract.balanceOf(user.address), 18)}`);
 
     // 构建团队结构
     await buildTeamStructure(
         stakingContract,
         usdcContract,
         user,
-        formatUSDC(teamAmount),
-        formatUSDC(personalAmount)
+        formatUSDX(teamAmount),
+        formatUSDX(personalAmount)
     );
 
     // 获取用户级别
@@ -156,7 +156,7 @@ async function testMinLevelLogic() {
         ["function transfer(address to, uint256 amount) returns (bool)",
          "function balanceOf(address) view returns (uint256)",
          "function approve(address spender, uint256 amount) returns (bool)"],
-        USDC_ADDRESS
+        USDX_ADDRESS
     );
 
     // 创建测试用户
@@ -169,9 +169,9 @@ async function testMinLevelLogic() {
         value: ethers.parseEther("2")
     });
 
-    // 分配 USDC
-    const totalAmount = formatUSDC(30000 + 1000);
-    await allocateUSDC(user.address, totalAmount);
+    // 分配 USDX
+    const totalAmount = formatUSDX(30000 + 1000);
+    await allocateUSDX(user.address, totalAmount);
 
     console.log(`  用户地址: ${user.address}`);
 
@@ -180,8 +180,8 @@ async function testMinLevelLogic() {
         stakingContract,
         usdcContract,
         user,
-        formatUSDC(30000),
-        formatUSDC(1000)
+        formatUSDX(30000),
+        formatUSDX(1000)
     );
 
     // 获取用户级别

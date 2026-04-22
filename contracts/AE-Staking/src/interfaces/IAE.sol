@@ -64,7 +64,7 @@ interface IAE is IERC20 {
 
     /**
      * @notice Pool status information for liquidity tracking
-     * @param balance USDT reserve balance in the pool
+     * @param balance USDX reserve balance in the pool
      * @param timestamp Last update timestamp
      */
     struct PoolStatus {
@@ -76,10 +76,10 @@ interface IAE is IERC20 {
      * @notice Batch distribution record for LP rewards
      * @param batchId Unique identifier for this distribution batch
      * @param timestamp When this batch was distributed
-     * @param totalRewards Total USDT rewards distributed in this batch
+     * @param totalRewards Total USDX rewards distributed in this batch
      * @param participantCount Number of LP holders who received rewards
      * @param totalLPSupply Total LP supply at time of distribution
-     * @param distributedPerLP USDT rewards per LP token (scaled by 1e18)
+     * @param distributedPerLP USDX rewards per LP token (scaled by 1e18)
      * @param isComplete Whether the batch distribution was completed
      * @param accumulatedRewards Total accumulated rewards carried from previous batches
      */
@@ -167,11 +167,11 @@ interface IAE is IERC20 {
 
     /// @notice Emitted when liquidity is permanently locked
     /// @param tokenAmount AE tokens used for liquidity
-    /// @param usdtAmount USDT tokens used for liquidity
+    /// @param usdxAmount USDX tokens used for liquidity
     /// @param lpTokensLocked LP tokens sent to dead address
     event LiquidityLocked(
         uint256 tokenAmount,
-        uint256 usdtAmount,
+        uint256 usdxAmount,
         uint256 lpTokensLocked
     );
 
@@ -192,7 +192,7 @@ interface IAE is IERC20 {
     /// @param amount Total token amount sold
     /// @param marketingFee Marketing fee charged
     /// @param lpFee LP fee charged
-    /// @param profitTax Profit tax in USDT
+    /// @param profitTax Profit tax in USDX
     event SellProcessed(
         address indexed seller,
         uint256 amount,
@@ -201,14 +201,14 @@ interface IAE is IERC20 {
         uint256 profitTax
     );
 
-    /// @notice Emitted when LP fees are processed into USDT rewards
+    /// @notice Emitted when LP fees are processed into USDX rewards
     /// @param tokenAmount LP fee tokens processed
-    /// @param usdtReceived USDT added to rewards pool
-    event LpFeeProcessed(uint256 tokenAmount, uint256 usdtReceived);
+    /// @param usdxReceived USDX added to rewards pool
+    event LpFeeProcessed(uint256 tokenAmount, uint256 usdxReceived);
 
     /// @notice Emitted when batch LP distribution completes
     /// @param holdersProcessed Number of holders processed
-    /// @param totalDistributed Total USDT distributed
+    /// @param totalDistributed Total USDX distributed
     /// @param completed Whether distribution completed successfully
     event LpBatchDistribution(
         uint256 holdersProcessed,
@@ -238,11 +238,11 @@ interface IAE is IERC20 {
     event LpHolderRemoved(address indexed holder);
 
     /// @notice Emitted when marketing fees are processed
-    /// @param amount Token amount processed to USDT
+    /// @param amount Token amount processed to USDX
     event MarketingFeesProcessed(uint256 amount);
 
     /// @notice Emitted when LP rewards are accumulated for future distribution
-    /// @param amount USDT amount accumulated
+    /// @param amount USDX amount accumulated
     /// @param accumulatedPerLP New accumulated rewards per LP token
     event LpRewardsAccumulated(uint256 amount, uint256 accumulatedPerLP);
 
@@ -394,12 +394,12 @@ interface IAE is IERC20 {
 
     /**
      * @notice Unified LP rewards distribution function
-     * @dev Handles fee processing, external USDT deposits, and distribution in one call
-     * @param depositAmount Optional USDT amount to deposit from caller (0 to skip deposit)
+     * @dev Handles fee processing, external USDX deposits, and distribution in one call
+     * @param depositAmount Optional USDX amount to deposit from caller (0 to skip deposit)
      * @param forceDistribution Whether to bypass cooldown and threshold checks
      * @return success Whether the operation completed without errors
      * @return processedHolders Number of LP holders that received rewards
-     * @return distributedAmount Total USDT amount distributed to holders
+     * @return distributedAmount Total USDX amount distributed to holders
      * @return completed Whether the distribution batch completed fully
      */
     function distributeRewards(
@@ -421,13 +421,13 @@ interface IAE is IERC20 {
     function cleanupLPHolders(address[] calldata invalidHolders) external;
 
     /**
-     * @notice Manually distributes profit tax from contract's USDT balance (Owner only)
-     * @param usdtAmount Amount of USDT to distribute as profit tax
+     * @notice Manually distributes profit tax from contract's USDX balance (Owner only)
+     * @param usdxAmount Amount of USDX to distribute as profit tax
      * @param referrer Address of referrer (zero address if none)
      * @param user Address of user for event emission
      */
     function distributeProfitTax(
-        uint256 usdtAmount,
+        uint256 usdxAmount,
         address referrer,
         address user
     ) external;
@@ -439,7 +439,7 @@ interface IAE is IERC20 {
     function getMarketingFeeRate() external view returns (uint256);
     function getMarketingAddress() external view returns (address);
     function getStakingContract() external view returns (address);
-    function getUSDTAddress() external view returns (address);
+    function getUSDXAddress() external view returns (address);
     function getUniswapV2Pair() external view returns (address);
 
     function getAmountOut(
@@ -448,7 +448,7 @@ interface IAE is IERC20 {
         uint256 reserveOut
     ) external pure returns (uint256 amountOut);
 
-    function getUSDTReserve() external view returns (uint112);
+    function getUSDXReserve() external view returns (uint112);
 
     function isPresaleEnabled() external view returns (bool);
 

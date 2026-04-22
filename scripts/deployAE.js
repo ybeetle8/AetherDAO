@@ -7,7 +7,7 @@ const configPath = path.join(__dirname, "..", "ae-deployment-config.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
 // BSC 主网地址（从配置文件读取）
-const USDC_ADDRESS = config.addresses.usdt;
+const USDX_ADDRESS = config.addresses.usdx;
 const ROUTER_ADDRESS = config.addresses.pancakeRouter;
 const FACTORY_ADDRESS = config.addresses.pancakeFactory;
 
@@ -27,7 +27,7 @@ const EDUCATION_FUND_ADDRESS = config.addresses.educationFundAddress;
 const TOTAL_SUPPLY = hre.ethers.parseEther(config.tokenomics.totalSupply);
 const STAKING_RESERVE = hre.ethers.parseEther(config.tokenomics.stakingReserve);
 const INITIAL_LIQUIDITY_AE = hre.ethers.parseEther(config.tokenomics.initialLiquidity.ae);
-const INITIAL_LIQUIDITY_USDC = hre.ethers.parseEther(config.tokenomics.initialLiquidity.usdt);
+const INITIAL_LIQUIDITY_USDX = hre.ethers.parseEther(config.tokenomics.initialLiquidity.usdx);
 const NODE_REWARD_ALLOCATION = hre.ethers.parseEther(config.tokenomics.nodeRewardAllocation);
 const CROSS_CHAIN_RESERVE_ALLOCATION = hre.ethers.parseEther(config.tokenomics.crossChainReserveAllocation);
 
@@ -41,14 +41,14 @@ async function main() {
   console.log("部署者余额:", hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), "BNB\n");
 
   // 获取合约实例
-  const usdc = await hre.ethers.getContractAt("IERC20", USDC_ADDRESS);
+  const usdx = await hre.ethers.getContractAt("IERC20", USDX_ADDRESS);
   const router = await hre.ethers.getContractAt("IUniswapV2Router02", ROUTER_ADDRESS);
   const factory = await hre.ethers.getContractAt("IUniswapV2Factory", FACTORY_ADDRESS);
 
   console.log("=== 步骤 1: 部署质押合约 ===");
   const Staking = await hre.ethers.getContractFactory("contracts/AE-Staking/src/mainnet/Staking.sol:Staking");
   const staking = await Staking.deploy(
-    USDC_ADDRESS,
+    USDX_ADDRESS,
     ROUTER_ADDRESS,
     ROOT_ADDRESS,
     FEE_RECIPIENT,
@@ -61,7 +61,7 @@ async function main() {
   console.log("=== 步骤 2: 部署 AE 代币合约 ===");
   const AE = await hre.ethers.getContractFactory("contracts/AE/src/mainnet/AE.sol:AE");
   const ae = await AE.deploy(
-    USDC_ADDRESS,
+    USDX_ADDRESS,
     ROUTER_ADDRESS,
     stakingAddress,
     MARKETING_ADDRESS,
@@ -85,11 +85,11 @@ async function main() {
   await setAETx.wait();
   console.log("✓ Staking.setAE() 已完成\n");
 
-  console.log("=== 步骤 5: 创建 AE/USDC 交易对 ===");
-  const createPairTx = await factory.createPair(aeAddress, USDC_ADDRESS);
+  console.log("=== 步骤 5: 创建 AE/USDX 交易对 ===");
+  const createPairTx = await factory.createPair(aeAddress, USDX_ADDRESS);
   await createPairTx.wait();
-  const pairAddress = await factory.getPair(aeAddress, USDC_ADDRESS);
-  console.log("✓ AE/USDC 交易对已创建:", pairAddress, "\n");
+  const pairAddress = await factory.getPair(aeAddress, USDX_ADDRESS);
+  console.log("✓ AE/USDX 交易对已创建:", pairAddress, "\n");
 
   console.log("=== 步骤 6: 配置 AE 代币交易对 ===");
   const setPairTx = await ae.setPair(pairAddress);
@@ -102,16 +102,16 @@ async function main() {
   console.log("✓ 已转移", hre.ethers.formatEther(STAKING_RESERVE), "AE 到质押合约");
   console.log("  质押合约 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(stakingAddress)), "AE\n");
 
-  console.log("=== 步骤 8: 设置 USDC 用于流动性 ===");
-  // 使用 hardhat_setStorageAt 为部署者设置 USDC 余额
-  // USDC (BSC) 的余额存储槽位为 9
+  console.log("=== 步骤 8: 设置 USDX 用于流动性 ===");
+  // 使用 hardhat_setStorageAt 为部署者设置 USDX 余额
+  // USDX (BSC) 的余额存储槽位为 9
   // 常见槽位为 0, 1, 2, 51（用于代理合约）
 
-  const usdcAmount = INITIAL_LIQUIDITY_USDC;
+  const usdcAmount = INITIAL_LIQUIDITY_USDX;
   const usdcAmountHex = hre.ethers.zeroPadValue(hre.ethers.toBeHex(usdcAmount), 32);
 
   let deployerUsdcBalance = 0n;
-  const slotsToTry = [9, 0, 1, 2, 51]; // USDC 余额映射的存储槽位（9 为主槽位）
+  const slotsToTry = [9, 0, 1, 2, 51]; // USDX 余额映射的存储槽位（9 为主槽位）
 
   for (const slot of slotsToTry) {
     // 计算 mapping(address => uint256) 的存储槽位
@@ -124,32 +124,32 @@ async function main() {
     );
 
     await hre.network.provider.send("hardhat_setStorageAt", [
-      USDC_ADDRESS,
+      USDX_ADDRESS,
       balanceSlot,
       usdcAmountHex,
     ]);
 
-    deployerUsdcBalance = await usdc.balanceOf(deployer.address);
+    deployerUsdcBalance = await usdx.balanceOf(deployer.address);
 
-    if (deployerUsdcBalance >= INITIAL_LIQUIDITY_USDC) {
+    if (deployerUsdcBalance >= INITIAL_LIQUIDITY_USDX) {
       console.log(`✓ 找到正确的存储槽位: ${slot}`);
-      console.log(`✓ 设置部署者 USDC 余额: ${hre.ethers.formatEther(deployerUsdcBalance)} USDC`);
+      console.log(`✓ 设置部署者 USDX 余额: ${hre.ethers.formatEther(deployerUsdcBalance)} USDX`);
       break;
     }
   }
 
   // 验证余额是否设置正确
-  if (deployerUsdcBalance < INITIAL_LIQUIDITY_USDC) {
-    throw new Error(`尝试槽位 ${slotsToTry.join(', ')} 后设置 USDC 余额失败。期望: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDC)}, 实际: ${hre.ethers.formatEther(deployerUsdcBalance)}`);
+  if (deployerUsdcBalance < INITIAL_LIQUIDITY_USDX) {
+    throw new Error(`尝试槽位 ${slotsToTry.join(', ')} 后设置 USDX 余额失败。期望: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)}, 实际: ${hre.ethers.formatEther(deployerUsdcBalance)}`);
   }
   console.log();
 
   console.log("=== 步骤 9: 授权 Router 用于流动性 ===");
   const approveAETx = await ae.approve(ROUTER_ADDRESS, INITIAL_LIQUIDITY_AE);
   await approveAETx.wait();
-  const approveUSDCTx = await usdc.approve(ROUTER_ADDRESS, INITIAL_LIQUIDITY_USDC);
-  await approveUSDCTx.wait();
-  console.log("✓ 已授权 Router 使用 AE 和 USDC\n");
+  const approveUSDXTx = await usdx.approve(ROUTER_ADDRESS, INITIAL_LIQUIDITY_USDX);
+  await approveUSDXTx.wait();
+  console.log("✓ 已授权 Router 使用 AE 和 USDX\n");
 
   console.log("=== 步骤 10: 添加初始流动性 ===");
   const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 分钟
@@ -157,9 +157,9 @@ async function main() {
 
   const addLiquidityTx = await router.addLiquidity(
     aeAddress,
-    USDC_ADDRESS,
+    USDX_ADDRESS,
     INITIAL_LIQUIDITY_AE,
-    INITIAL_LIQUIDITY_USDC,
+    INITIAL_LIQUIDITY_USDX,
     0, // amountAMin
     0, // amountBMin
     lpRecipient, // LP 代币接收者（address(0) 表示销毁）
@@ -169,7 +169,7 @@ async function main() {
 
   console.log("✓ 已添加流动性:");
   console.log("  AE:", hre.ethers.formatEther(INITIAL_LIQUIDITY_AE));
-  console.log("  USDC:", hre.ethers.formatEther(INITIAL_LIQUIDITY_USDC));
+  console.log("  USDX:", hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX));
   console.log("  LP 代币发送至:", lpRecipient === hre.ethers.ZeroAddress ? "已销毁 (address(0))" : lpRecipient, "\n");
 
   console.log("=== 步骤 11: 转移 AE 到节点奖励地址 ===");
@@ -221,8 +221,8 @@ async function main() {
   console.log("║ 3. 流动性池 (PancakeSwap)                                      ║");
   console.log(`║    数量: ${hre.ethers.formatEther(pairAEBalance).padEnd(20)} AE (${pairPercent}%)`.padEnd(65) + "║");
   console.log(`║    地址: ${pairAddress}`.padEnd(65) + "║");
-  console.log(`║    配对: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDC)} USDC`.padEnd(65) + "║");
-  console.log(`║    价格: 1 AE = ${(Number(hre.ethers.formatEther(INITIAL_LIQUIDITY_USDC)) / Number(hre.ethers.formatEther(INITIAL_LIQUIDITY_AE))).toFixed(4)} USDC`.padEnd(65) + "║");
+  console.log(`║    配对: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)} USDX`.padEnd(65) + "║");
+  console.log(`║    价格: 1 AE = ${(Number(hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)) / Number(hre.ethers.formatEther(INITIAL_LIQUIDITY_AE))).toFixed(4)} USDX`.padEnd(65) + "║");
   console.log("║    LP代币: 已永久销毁                                          ║");
   console.log("╠════════════════════════════════════════════════════════════════╣");
 
@@ -266,7 +266,7 @@ async function main() {
       totalSupply: hre.ethers.formatEther(TOTAL_SUPPLY),
       stakingReserve: hre.ethers.formatEther(STAKING_RESERVE),
       initialLiquidityAE: hre.ethers.formatEther(INITIAL_LIQUIDITY_AE),
-      initialLiquidityUSDC: hre.ethers.formatEther(INITIAL_LIQUIDITY_USDC),
+      initialLiquidityUSDX: hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX),
       nodeRewardAllocation: hre.ethers.formatEther(NODE_REWARD_ALLOCATION),
       crossChainReserveAllocation: hre.ethers.formatEther(CROSS_CHAIN_RESERVE_ALLOCATION),
     },
@@ -287,7 +287,7 @@ async function main() {
   console.log("合约地址:");
   console.log("  AE 代币:", aeAddress);
   console.log("  质押合约:", stakingAddress);
-  console.log("  AE/USDC 交易对:", pairAddress);
+  console.log("  AE/USDX 交易对:", pairAddress);
   console.log("\n配置地址:");
   console.log("  营销地址:", MARKETING_ADDRESS);
   console.log("  根地址:", ROOT_ADDRESS);

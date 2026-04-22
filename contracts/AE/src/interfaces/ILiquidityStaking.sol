@@ -26,8 +26,8 @@ interface ILiquidityStaking {
     /// @notice Emitted when BLA rewards are accumulated for future swapping
     event BLARewardsAccumulated(uint256 blaAmount, uint256 totalAccumulated);
 
-    /// @notice Emitted when accumulated BLA is swapped to USDT rewards
-    event BLASwappedToRewards(uint256 blaAmount, uint256 usdtAmount, uint256 newRewardRate);
+    /// @notice Emitted when accumulated BLA is swapped to USDX rewards
+    event BLASwappedToRewards(uint256 blaAmount, uint256 usdxAmount, uint256 newRewardRate);
 
     /// @notice Emitted when address exclusion status changes
     event AddressExcluded(address indexed account, bool excluded);
@@ -80,13 +80,13 @@ interface ILiquidityStaking {
 
     /**
      * @notice Deposit rewards (only callable by XF contract)
-     * @param amount Amount of USDT rewards to deposit
+     * @param amount Amount of USDX rewards to deposit
      */
     function depositRewards(uint256 amount) external;
 
     /**
      * @notice Deposit BLA rewards (only callable by XF contract)
-     * @param blaAmount Amount of BLA tokens to deposit and convert to USDT for rewards
+     * @param blaAmount Amount of BLA tokens to deposit and convert to USDX for rewards
      */
     function depositBLARewards(uint256 blaAmount) external;
 
