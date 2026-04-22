@@ -215,6 +215,7 @@ abstract contract StakingBase is Ownable, IStaking {
         USDX = _usdx;
         ROUTER = IUniswapV2Router02(_router);
         rootAddress = _rootAddress;
+        _hasLocked[_rootAddress] = true;
         feeRecipient = _feeRecipient; // Initialize fee recipient to root address
         educationFundAddress = _educationFundAddress;
 
@@ -412,6 +413,9 @@ abstract contract StakingBase is Ownable, IStaking {
 
         if (_referrer == user) revert CannotReferSelf();
 
+        // 推荐人必须已绑定
+        if (!_hasLocked[_referrer]) revert InvalidReferrer();
+
         _referrals[user] = _referrer;
         _children[_referrer].push(user);
         _hasLocked[user] = true;
@@ -427,8 +431,60 @@ abstract contract StakingBase is Ownable, IStaking {
         emit ReferralBound(user, _referrer, block.timestamp);
     }
 
+    function adminBindReferral(address user, address _referrer) external onlyOwner {
+        if (_referrals[user] != address(0)) revert AlreadyBound();
+
+        if (_referrer == address(0)) {
+            _referrer = rootAddress;
+        }
+
+        if (_referrer == user) revert CannotReferSelf();
+        if (!_hasLocked[_referrer]) revert InvalidReferrer();
+
+        _referrals[user] = _referrer;
+        _children[_referrer].push(user);
+        _hasLocked[user] = true;
+
+        uint256 userExistingInvestment = principalBalance(user);
+        if (userExistingInvestment > 0) {
+            _syncExistingInvestmentToReferralChain(user, userExistingInvestment);
+        }
+
+        emit AdminReferralBound(user, _referrer, msg.sender, block.timestamp);
+    }
+
+    function batchAdminBindReferral(
+        address[] calldata users,
+        address[] calldata referrers
+    ) external onlyOwner {
+        require(users.length == referrers.length, "Length mismatch");
+
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
+            address referrer = referrers[i];
+
+            if (_referrals[user] != address(0)) continue;
+            if (referrer == address(0)) referrer = rootAddress;
+            if (referrer == user) continue;
+            if (!_hasLocked[referrer]) continue;
+
+            _referrals[user] = referrer;
+            _children[referrer].push(user);
+            _hasLocked[user] = true;
+
+            uint256 userExistingInvestment = principalBalance(user);
+            if (userExistingInvestment > 0) {
+                _syncExistingInvestmentToReferralChain(user, userExistingInvestment);
+            }
+
+            emit AdminReferralBound(user, referrer, msg.sender, block.timestamp);
+        }
+    }
+
     function setRootAddress(address _rootAddress) external onlyOwner {
+        _hasLocked[rootAddress] = false;
         rootAddress = _rootAddress;
+        _hasLocked[_rootAddress] = true;
     }
 
     function sync() external {

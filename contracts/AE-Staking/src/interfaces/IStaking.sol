@@ -193,6 +193,20 @@ interface IStaking {
     );
 
     /**
+     * @notice Emitted when admin binds a referral relationship
+     * @param user User being referred
+     * @param referrer Referrer address
+     * @param admin Admin who performed the binding
+     * @param timestamp Binding timestamp
+     */
+    event AdminReferralBound(
+        address indexed user,
+        address indexed referrer,
+        address indexed admin,
+        uint256 timestamp
+    );
+
+    /**
      * @notice Emitted for token transfers (minting/burning)
      * @param from Source address (address(0) for minting)
      * @param to Destination address (address(0) for burning)
@@ -332,6 +346,20 @@ interface IStaking {
      * @param _referrer The referrer to bind to (or address(0) for root)
      */
     function lockReferral(address _referrer) external;
+
+    /**
+     * @notice Admin binds referral relationship for a user
+     * @param user The user to bind
+     * @param _referrer The referrer to bind to (or address(0) for root)
+     */
+    function adminBindReferral(address user, address _referrer) external;
+
+    /**
+     * @notice Admin batch binds referral relationships
+     * @param users Array of users to bind
+     * @param referrers Array of corresponding referrers
+     */
+    function batchAdminBindReferral(address[] calldata users, address[] calldata referrers) external;
 
     // =========================================================================
     // VIEW FUNCTIONS - USER INFORMATION
