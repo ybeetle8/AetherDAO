@@ -197,15 +197,94 @@ await ae.setPresaleActive(false);
 
 ### ⚠️ 问题 6: 缺少可选配置步骤
 
-以下合约函数在部署脚本中未调用，如果后续需要可单独配置：
+AE 合约中有三个 setter 函数在部署脚本中未被调用。这些函数设置的地址会被合约内部的手续费分配逻辑所依赖。下面逐一说明：
 
-| 函数 | 用途 | 合约 |
-|------|------|------|
-| `setLiquidityStaking(address)` | 设置流动性质押合约 | AE |
-| `setFundRelay(address)` | 设置资金中继合约 | AE |
-| `setNodeDividendAddress(address)` | 设置节点分红地址 | AE |
+#### 6.1 `setLiquidityStaking(address)` — 流动性质押合约地址
 
-这些不影响基础部署，但建议在脚本中加注释说明后续配置计划。
+**函数位置:** `AEBase.sol:360-364`
+
+```solidity
+function setLiquidityStaking(address _liquidityStaking) external onlyOwner {
+    if (_liquidityStaking == address(0)) revert ZeroAddress();
+    liquidityStaking = ILiquidityStaking(_liquidityStaking);
+    feeWhitelisted[_liquidityStaking] = true;
+}
+```
+
+**这个地址在哪里被使用：**
+
+- `_processFeeDistribution()`（`AEBase.sol:1350`）中调用 `liquidityStaking.depositBLARewards(totalLPFee)` — 将累积的 BLA 代币奖励存入流动性质押合约
+- `_processFundRelayFees()`（`AEBase.sol:1531`）中调用 `liquidityStaking.depositRewards(lpShare)` — 将 USDX 奖励存入流动性质押合约
+
+**如果不设置会怎样：**
+
+`liquidityStaking` 默认为 `address(0)`。当交易触发手续费分配逻辑时，代码会尝试在零地址上调用 `depositBLARewards()` 或 `depositRewards()`，这会导致交易 revert。也就是说，**一旦手续费累积触发分配，相关交易会失败**。
+
+**严重程度：🟡 中** — 不影响初始部署，但在正式运营（有用户交易产生手续费）之前必须设置，否则手续费分配会导致交易失败。
+
+---
+
+#### 6.2 `setFundRelay(address)` — 资金中继合约地址
+
+**函数位置:** `AEBase.sol:366-370`
+
+```solidity
+function setFundRelay(address _fundRelay) external onlyOwner {
+    if (_fundRelay == address(0)) revert ZeroAddress();
+    fundRelay = FundRelay(_fundRelay);
+    feeWhitelisted[_fundRelay] = true;
+}
+```
+
+**这个地址在哪里被使用：**
+
+FundRelay 是一个中间合约，用于解决 swap 过程中的 `INVALID_TO` 问题（PancakeSwap 不允许 swap 的接收地址是交易对中的代币合约本身）。合约中有多处检查 `address(fundRelay) != address(0)` 来决定行为：
+
+- `_swapTokensForUSDX()`（`AEBase.sol:909-925`）— 如果 fundRelay 已设置，swap 产出的 USDX 会先发到 fundRelay 再转回；如果未设置，直接发到 AE 合约自身
+- `_tryTriggerFundRelayDistribution()`（`AEBase.sol:1238-1240`）— 如果未设置则直接 return，跳过分配
+- `_processFundRelayFees()`（`AEBase.sol:1500-1520`）— 从 fundRelay 提取 AE 和 USDX
+- `_processImmediateLiquidity()`（`AEBase.sol:1553-1554`）— 将流动性手续费转给 fundRelay
+
+**如果不设置会怎样：**
+
+合约代码中对 fundRelay 做了零地址判断，未设置时会走降级逻辑（swap 产出直接发到 AE 合约、跳过 fund relay 分配等）。**不会直接 revert**，但手续费的 swap 和分配流程可能不完整或行为异常。
+
+**严重程度：🟡 中** — 有降级处理不会崩溃，但手续费分配流程不完整，正式运营前应设置。
+
+---
+
+#### 6.3 `setNodeDividendAddress(address)` — 节点分红地址
+
+**函数位置:** `AEBase.sol:380-383`
+
+```solidity
+function setNodeDividendAddress(address _node) external onlyOwner {
+    if (_node == address(0)) revert ZeroAddress();
+    nodeDividendAddress = _node;
+}
+```
+
+**这个地址在哪里被使用：**
+
+经过全代码搜索，`nodeDividendAddress` 变量在声明和 setter 之外**没有被任何逻辑引用**。它是一个只写不读的状态变量。
+
+**如果不设置会怎样：**
+
+**没有任何影响。** 这个变量目前是死代码，可能是预留给未来功能的，也可能是重构后遗留的。
+
+**严重程度：🟢 低** — 纯粹的预留字段，不影响任何功能。
+
+---
+
+#### 总结
+
+| 函数 | 不设置的后果 | 何时必须设置 |
+|------|-------------|-------------|
+| `setLiquidityStaking` | 手续费分配时交易 revert | 正式开放交易前 |
+| `setFundRelay` | 手续费 swap/分配流程不完整 | 正式开放交易前 |
+| `setNodeDividendAddress` | 无影响（未被使用） | 不需要 |
+
+**建议：** `setLiquidityStaking` 和 `setFundRelay` 应在部署脚本中增加步骤（在对应合约部署完成后调用），或至少在脚本末尾明确提醒需要后续配置。
 
 ---
 
@@ -243,5 +322,5 @@ deployer 作为 owner 在步骤 3 `initializeWhitelist()` 中已被加入白名�
 | 🟡 中 | 主网部署缺少环境判断 | 主网部署失败 |
 | 🟡 中 | 流动性滑点保护为 0 | 主网安全风险 |
 | 🟢 低 | 缺少 presale 状态管理 | 需手动处理 |
-| 🟢 低 | 缺少可选配置步骤 | 后续补充即可 |
+| 🟢 低 | 缺少可选配置步骤 | setLiquidityStaking/setFundRelay 正式运营前必须设置 |
 | 🟢 低 | 部署信息不完整 | 记录缺失 |

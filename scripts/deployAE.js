@@ -274,6 +274,8 @@ async function main() {
       marketingFundAddress: MARKETING_FUND_ADDRESS,
       weeklyTop15RewardAddress: WEEKLY_TOP15_REWARD_ADDRESS,
       crossChainReserveAddress: CROSS_CHAIN_RESERVE_ADDRESS,
+      educationFundAddress: EDUCATION_FUND_ADDRESS,
+      nodeRewardAddress: NODE_REWARD_ADDRESS,
     },
     tokenomics: {
       totalSupply: hre.ethers.formatEther(TOTAL_SUPPLY),
