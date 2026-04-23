@@ -185,21 +185,42 @@ async function main() {
   console.log("  USDX:", hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX));
   console.log("  LP 代币发送至:", lpRecipient === hre.ethers.ZeroAddress ? "已销毁 (address(0))" : lpRecipient, "\n");
 
-  console.log("=== 步骤 11: 转移 AE 到节点奖励地址 ===");
+  console.log("=== 步骤 11: 部署 LiquidityStaking 合约 ===");
+  const LiquidityStaking = await hre.ethers.getContractFactory("contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking");
+  const liquidityStaking = await LiquidityStaking.deploy(
+    USDX_ADDRESS,           // _usdt
+    aeAddress,              // _olaContract (AE 代币)
+    pairAddress,            // _lpToken (AE/USDX LP)
+    stakingAddress,         // _staking
+    MARKETING_ADDRESS,      // _marketingAddress
+    deployer.address,       // _admin
+    ROUTER_ADDRESS          // _router
+  );
+  await liquidityStaking.waitForDeployment();
+  const liquidityStakingAddress = await liquidityStaking.getAddress();
+  console.log("✓ LiquidityStaking 合约已部署:", liquidityStakingAddress, "\n");
+
+  console.log("=== 步骤 12: 配置 AE 合约的 LiquidityStaking 地址 ===");
+  const setLiquidityStakingTx = await ae.setLiquidityStaking(liquidityStakingAddress);
+  await setLiquidityStakingTx.wait();
+  console.log("✓ AE.setLiquidityStaking() 已完成");
+  console.log("  LiquidityStaking 已加入手续费白名单\n");
+
+  console.log("=== 步骤 13: 转移 AE 到节点奖励地址 ===");
   const transferNodeTx = await ae.transfer(NODE_REWARD_ADDRESS, NODE_REWARD_ALLOCATION);
   await transferNodeTx.wait();
   console.log("✓ 已转移", hre.ethers.formatEther(NODE_REWARD_ALLOCATION), "AE 到节点奖励地址");
   console.log("  节点奖励地址:", NODE_REWARD_ADDRESS);
   console.log("  节点奖励地址 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(NODE_REWARD_ADDRESS)), "AE\n");
 
-  console.log("=== 步骤 12: 转移 AE 到跨链储备地址 ===");
+  console.log("=== 步骤 14: 转移 AE 到跨链储备地址 ===");
   const transferCrossChainTx = await ae.transfer(CROSS_CHAIN_RESERVE_ADDRESS, CROSS_CHAIN_RESERVE_ALLOCATION);
   await transferCrossChainTx.wait();
   console.log("✓ 已转移", hre.ethers.formatEther(CROSS_CHAIN_RESERVE_ALLOCATION), "AE 到跨链储备地址");
   console.log("  跨链储备地址:", CROSS_CHAIN_RESERVE_ADDRESS);
   console.log("  跨链储备地址 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(CROSS_CHAIN_RESERVE_ADDRESS)), "AE\n");
 
-  console.log("=== 步骤 13: 验证部署 ===");
+  console.log("=== 步骤 15: 验证部署 ===");
   const deployerAEBalance = await ae.balanceOf(deployer.address);
   const stakingAEBalance = await ae.balanceOf(stakingAddress);
   const pairAEBalance = await ae.balanceOf(pairAddress);
@@ -262,6 +283,7 @@ async function main() {
     contracts: {
       AE: aeAddress,
       Staking: stakingAddress,
+      LiquidityStaking: liquidityStakingAddress,
       Pair: pairAddress,
     },
     addresses: {
@@ -302,6 +324,7 @@ async function main() {
   console.log("合约地址:");
   console.log("  AE 代币:", aeAddress);
   console.log("  质押合约:", stakingAddress);
+  console.log("  流动性质押合约:", liquidityStakingAddress);
   console.log("  AE/USDX 交易对:", pairAddress);
   console.log("\n配置地址:");
   console.log("  营销地址:", MARKETING_ADDRESS);
