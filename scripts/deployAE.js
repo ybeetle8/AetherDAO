@@ -206,21 +206,38 @@ async function main() {
   console.log("✓ AE.setLiquidityStaking() 已完成");
   console.log("  LiquidityStaking 已加入手续费白名单\n");
 
-  console.log("=== 步骤 13: 转移 AE 到节点奖励地址 ===");
+  console.log("=== 步骤 13: 部署 FundRelay 合约 ===");
+  const FundRelay = await hre.ethers.getContractFactory("contracts/AE/src/utils/FundRelay.sol:FundRelay");
+  const fundRelay = await FundRelay.deploy(
+    aeAddress,              // AE 合约地址
+    USDX_ADDRESS,           // USDX 地址
+    deployer.address        // 紧急提取地址
+  );
+  await fundRelay.waitForDeployment();
+  const fundRelayAddress = await fundRelay.getAddress();
+  console.log("✓ FundRelay 合约已部署:", fundRelayAddress, "\n");
+
+  console.log("=== 步骤 14: 配置 AE 合约的 FundRelay 地址 ===");
+  const setFundRelayTx = await ae.setFundRelay(fundRelayAddress);
+  await setFundRelayTx.wait();
+  console.log("✓ AE.setFundRelay() 已完成");
+  console.log("  FundRelay 已加入手续费白名单\n");
+
+  console.log("=== 步骤 15: 转移 AE 到节点奖励地址 ===");
   const transferNodeTx = await ae.transfer(NODE_REWARD_ADDRESS, NODE_REWARD_ALLOCATION);
   await transferNodeTx.wait();
   console.log("✓ 已转移", hre.ethers.formatEther(NODE_REWARD_ALLOCATION), "AE 到节点奖励地址");
   console.log("  节点奖励地址:", NODE_REWARD_ADDRESS);
   console.log("  节点奖励地址 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(NODE_REWARD_ADDRESS)), "AE\n");
 
-  console.log("=== 步骤 14: 转移 AE 到跨链储备地址 ===");
+  console.log("=== 步骤 16: 转移 AE 到跨链储备地址 ===");
   const transferCrossChainTx = await ae.transfer(CROSS_CHAIN_RESERVE_ADDRESS, CROSS_CHAIN_RESERVE_ALLOCATION);
   await transferCrossChainTx.wait();
   console.log("✓ 已转移", hre.ethers.formatEther(CROSS_CHAIN_RESERVE_ALLOCATION), "AE 到跨链储备地址");
   console.log("  跨链储备地址:", CROSS_CHAIN_RESERVE_ADDRESS);
   console.log("  跨链储备地址 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(CROSS_CHAIN_RESERVE_ADDRESS)), "AE\n");
 
-  console.log("=== 步骤 15: 验证部署 ===");
+  console.log("=== 步骤 17: 验证部署 ===");
   const deployerAEBalance = await ae.balanceOf(deployer.address);
   const stakingAEBalance = await ae.balanceOf(stakingAddress);
   const pairAEBalance = await ae.balanceOf(pairAddress);
@@ -284,6 +301,7 @@ async function main() {
       AE: aeAddress,
       Staking: stakingAddress,
       LiquidityStaking: liquidityStakingAddress,
+      FundRelay: fundRelayAddress,
       Pair: pairAddress,
     },
     addresses: {
@@ -325,6 +343,7 @@ async function main() {
   console.log("  AE 代币:", aeAddress);
   console.log("  质押合约:", stakingAddress);
   console.log("  流动性质押合约:", liquidityStakingAddress);
+  console.log("  资金中继合约:", fundRelayAddress);
   console.log("  AE/USDX 交易对:", pairAddress);
   console.log("\n配置地址:");
   console.log("  营销地址:", MARKETING_ADDRESS);

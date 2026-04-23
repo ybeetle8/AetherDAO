@@ -18,9 +18,13 @@
 | 8 | 设置 USDX 余额 | ⚠️ 仅限本地 |
 | 9 | 授权 Router | ✅ 正确 |
 | 10 | 添加流动性 | ✅ 正确 |
-| 11 | 转移节点奖励 | ✅ 正确 |
-| 12 | 转移跨链储备 | ✅ 正确 |
-| 13 | 验证部署 | ⚠️ 信息不完整 |
+| 11 | 部署 LiquidityStaking 合约 | ✅ 正确 |
+| 12 | AE.setLiquidityStaking() | ✅ 正确 |
+| 13 | 部署 FundRelay 合约 | ✅ 正确 |
+| 14 | AE.setFundRelay() | ✅ 正确 |
+| 15 | 转移节点奖励 | ✅ 正确 |
+| 16 | 转移跨链储备 | ✅ 正确 |
+| 17 | 验证部署 | ⚠️ 信息不完整 |
 
 ---
 
@@ -224,32 +228,12 @@ function setLiquidityStaking(address _liquidityStaking) external onlyOwner {
 
 ---
 
-#### 6.2 `setFundRelay(address)` — 资金中继合约地址
+#### ~~6.2 `setFundRelay(address)` — 资金中继合约地址 — 已解决~~
 
-**函数位置:** `AEBase.sol:366-370`
-
-```solidity
-function setFundRelay(address _fundRelay) external onlyOwner {
-    if (_fundRelay == address(0)) revert ZeroAddress();
-    fundRelay = FundRelay(_fundRelay);
-    feeWhitelisted[_fundRelay] = true;
-}
-```
-
-**这个地址在哪里被使用：**
-
-FundRelay 是一个中间合约，用于解决 swap 过程中的 `INVALID_TO` 问题（PancakeSwap 不允许 swap 的接收地址是交易对中的代币合约本身）。合约中有多处检查 `address(fundRelay) != address(0)` 来决定行为：
-
-- `_swapTokensForUSDX()`（`AEBase.sol:909-925`）— 如果 fundRelay 已设置，swap 产出的 USDX 会先发到 fundRelay 再转回；如果未设置，直接发到 AE 合约自身
-- `_tryTriggerFundRelayDistribution()`（`AEBase.sol:1238-1240`）— 如果未设置则直接 return，跳过分配
-- `_processFundRelayFees()`（`AEBase.sol:1500-1520`）— 从 fundRelay 提取 AE 和 USDX
-- `_processImmediateLiquidity()`（`AEBase.sol:1553-1554`）— 将流动性手续费转给 fundRelay
-
-**如果不设置会怎样：**
-
-合约代码中对 fundRelay 做了零地址判断，未设置时会走降级逻辑（swap 产出直接发到 AE 合约、跳过 fund relay 分配等）。**不会直接 revert**，但手续费的 swap 和分配流程可能不完整或行为异常。
-
-**严重程度：🟡 中** — 有降级处理不会崩溃，但手续费分配流程不完整，正式运营前应设置。
+> **已在部署脚本中配置。** `deployAE.js` 步骤 13 部署 FundRelay 合约，步骤 14 调用 `ae.setFundRelay()`。
+>
+> - FundRelay 构造参数：AE 合约地址、USDX 地址、deployer 地址（紧急提取人）
+> - `setFundRelay()` 会同时将 FundRelay 加入手续费白名单
 
 ---
 
@@ -280,11 +264,11 @@ function setNodeDividendAddress(address _node) external onlyOwner {
 
 | 函数 | 不设置的后果 | 何时必须设置 |
 |------|-------------|-------------|
-| `setLiquidityStaking` | 手续费分配时交易 revert | 正式开放交易前 |
-| `setFundRelay` | 手续费 swap/分配流程不完整 | 正式开放交易前 |
+| `setLiquidityStaking` | ~~手续费分配时交易 revert~~ | ✅ 已在脚本中配置 |
+| `setFundRelay` | ~~手续费 swap/分配流程不完整~~ | ✅ 已在脚本中配置 |
 | `setNodeDividendAddress` | 无影响（未被使用） | 不需要 |
 
-**建议：** `setLiquidityStaking` 和 `setFundRelay` 应在部署脚本中增加步骤（在对应合约部署完成后调用），或至少在脚本末尾明确提醒需要后续配置。
+**建议：** ~~`setLiquidityStaking` 和 `setFundRelay` 应在部署脚本中增加步骤~~ — 两者均已在部署脚本中配置完成。
 
 ---
 
@@ -322,5 +306,5 @@ deployer 作为 owner 在步骤 3 `initializeWhitelist()` 中已被加入白名�
 | 🟡 中 | 主网部署缺少环境判断 | 主网部署失败 |
 | 🟡 中 | 流动性滑点保护为 0 | 主网安全风险 |
 | 🟢 低 | 缺少 presale 状态管理 | 需手动处理 |
-| 🟢 低 | 缺少可选配置步骤 | setLiquidityStaking/setFundRelay 正式运营前必须设置 |
+| ~~🟢 低~~ | ~~缺少可选配置步骤~~ | ✅ setLiquidityStaking/setFundRelay 已在脚本中配置 |
 | 🟢 低 | 部署信息不完整 | 记录缺失 |
