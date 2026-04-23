@@ -201,13 +201,63 @@ await ae.setLiquidityStaking(liquidityStaking.target);
 
 ---
 
-## 相关代码位置
+## 合约代码位置
+
+LiquidityStaking 合约已经写好了，放在 `othercode/LiquidityStaking/` 目录下（不在 `contracts/` 目录，是独立项目）。
+
+### 文件结构
+
+```
+othercode/LiquidityStaking/
+├── src/
+│   ├── mainnet/
+│   │   └── LiquidityStaking.sol          ← 主网部署合约（继承 Base，设置 minStakeDuration = 24h）
+│   ├── abstract/
+│   │   └── LiquidityStakingBase.sol      ← 核心逻辑实现（589 行）
+│   └── interfaces/
+│       ├── IOLA.sol                       ← AE 合约接口
+│       └── IStaking.sol                   ← Staking 合约接口
+├── lib/
+│   ├── openzeppelin-contracts/            ← Ownable, IERC20, ReentrancyGuard
+│   └── v2-periphery/                      ← IUniswapV2Router02
+└── settings.json
+```
+
+另外还有一个 SYI 版本的 LiquidityStaking（用于 SYI 代币系统）：
+
+```
+othercode/LiquidityStaking-SYI/
+├── mainnet/
+│   └── LiquidityStaking.sol
+├── abstract/
+│   └── LiquidityStakingBase.sol
+└── interfaces/
+    ├── ISYI.sol
+    └── IStaking.sol
+```
+
+### AE 合约中的相关代码
 
 | 内容 | 文件位置 |
 |------|----------|
-| `liquidityStaking` 变量声明 | `AEBase.sol:225` |
-| `setLiquidityStaking()` 函数 | `AEBase.sol:360-364` |
-| LP Fee 分配逻辑 | `AEBase.sol:1346-1350` |
-| FundRelay USDX 分配逻辑 | `AEBase.sol:1530-1531` |
-| ILiquidityStaking 接口 | `contracts/AE/src/interfaces/ILiquidityStaking.sol` |
-| LiquidityStaking 实现 | `othercode/LiquidityStaking/src/abstract/LiquidityStakingBase.sol` |
+| `liquidityStaking` 变量声明 | `contracts/AE/src/abstract/AEBase.sol:225` |
+| `setLiquidityStaking()` 函数 | `contracts/AE/src/abstract/AEBase.sol:360-364` |
+| LP Fee 分配逻辑 | `contracts/AE/src/abstract/AEBase.sol:1346-1350` |
+| FundRelay USDX 分配逻辑 | `contracts/AE/src/abstract/AEBase.sol:1530-1531` |
+| ILiquidityStaking 接口定义 | `contracts/AE/src/interfaces/ILiquidityStaking.sol` |
+
+### 构造函数参数
+
+部署 LiquidityStaking 合约需要 7 个参数：
+
+```solidity
+constructor(
+    address _usdt,              // USDX 代币地址
+    address _olaContract,       // AE 代币合约地址
+    address _lpToken,           // AE/USDX LP 代币地址
+    address _staking,           // Staking 合约地址
+    address _marketingAddress,  // 营销地址（会被排除在质押之外）
+    address _admin,             // 管理员地址（设为 owner）
+    address _router             // PancakeSwap Router 地址
+)
+```

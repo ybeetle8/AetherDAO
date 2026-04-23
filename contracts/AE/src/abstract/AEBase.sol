@@ -226,7 +226,6 @@ abstract contract AEBase is ERC20, Ownable {
     FundRelay public fundRelay;
     address public rootAddress;
     address public marketingAddress;
-    address public nodeDividendAddress;
     address public marketingFundAddress;      // 市场推广基金地址
     address public weeklyTop15RewardAddress;  // 每周排名奖励地址
     uint256 public coldTime = 10 seconds;
@@ -375,11 +374,6 @@ abstract contract AEBase is ERC20, Ownable {
         marketingAddress = _newAddress;
         feeWhitelisted[_newAddress] = true;
         emit MarketingAddressUpdated(oldAddress, _newAddress);
-    }
-
-    function setNodeDividendAddress(address _node) external onlyOwner {
-        if (_node == address(0)) revert ZeroAddress();
-        nodeDividendAddress = _node;
     }
 
     function setFeeWhitelisted(
