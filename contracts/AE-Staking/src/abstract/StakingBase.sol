@@ -256,7 +256,6 @@ abstract contract StakingBase is Ownable, IStaking {
 
         address[] memory referralChain = getReferrals(msg.sender, maxD);
         uint256 educationFund = _distributeEducationFund(
-            msg.sender,
             interestEarned
         );
         uint256 teamFee = _distributeTeamReward(referralChain, interestEarned);
@@ -352,7 +351,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
         // Distribute fees (same as unstake)
         address[] memory referralChain = getReferrals(user, maxD);
-        uint256 educationFund = _distributeEducationFund(user, usdxReceived);
+        uint256 educationFund = _distributeEducationFund(usdxReceived);
         uint256 teamFee = _distributeTeamReward(referralChain, usdxReceived);
 
         // Calculate user payout
@@ -1153,7 +1152,6 @@ abstract contract StakingBase is Ownable, IStaking {
     }
 
     function _distributeEducationFund(
-        address _user,
         uint256 _interset
     ) private returns (uint256 fee) {
         unchecked {
@@ -1450,7 +1448,7 @@ abstract contract StakingBase is Ownable, IStaking {
     /// @return tier Tier level (0-9)
     function _getTierByTeamKpi(
         uint256 teamKPI
-    ) private view returns (uint8 tier) {
+    ) private pure returns (uint8 tier) {
         IStaking.TeamTier[9] memory tiers = _getTeamTiers();
         for (uint256 i = 0; i < tiers.length; ) {
             if (teamKPI >= tiers[i].threshold) {

@@ -1,10 +1,10 @@
 {
   "network": "localhost",
-  "timestamp": "2026-02-10T12:38:39.462Z",
+  "timestamp": "2026-04-23T05:20:21.323Z",
   "contracts": {
-    "AE": "0xe1b86BF67e94D769d334DE9ea7b0713760fED04A",
-    "Staking": "0x277DD0e92658cf96c6aE5aBC9b1d8CC1152B106F",
-    "Pair": "0x2bb9C7BbA4eBf2Bd84a6DbbF3E9911057fE4ca44"
+    "AE": "0xBf586E72B8135324C8348Df5E22F405c9dB0a270",
+    "Staking": "0xF43E138FFaf932C672679cde3a81d4294F6977d0",
+    "Pair": "0x377c867B7FBD04798a3424F6b00d1c82683A0Ade"
   },
   "addresses": {
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -21,7 +21,7 @@
     "totalSupply": "100000000.0",
     "stakingReserve": "20000000.0",
     "initialLiquidityAE": "60000000.0",
-    "initialLiquidityUSDC": "60000.0",
+    "initialLiquidityUSDX": "60000.0",
     "nodeRewardAllocation": "18740000.0",
     "crossChainReserveAllocation": "1260000.0"
   },
