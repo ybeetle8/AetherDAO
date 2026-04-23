@@ -1,12 +1,12 @@
 {
   "network": "localhost",
-  "timestamp": "2026-04-23T12:45:55.948Z",
+  "timestamp": "2026-04-23T13:44:25.150Z",
   "contracts": {
-    "AE": "0x3B093270DD94578B29548CB2e2Faee172F3aF588",
-    "Staking": "0xb6173B3BEb010D3962530a2360aD19Ee9FD89D97",
-    "LiquidityStaking": "0xBf586E72B8135324C8348Df5E22F405c9dB0a270",
-    "FundRelay": "0x189aA4e4241766BA9c32CD0f1b049cffd5E53B1c",
-    "Pair": "0x3ccB1878038e842680cC384FB104D2dFC1D7c787"
+    "AE": "0x4A50B7fB2Abe8d49EA09507C4f05EBEC79405CcE",
+    "Staking": "0x43904D57F6a4a3336d895eD0A48a368726497D40",
+    "LiquidityStaking": "0x8a3bD8E5755aD0089b6C93878fe36328bcF7ca32",
+    "FundRelay": "0x7c5CcF068A3D5a0c5f6f7648aCc2143D9CD456e1",
+    "Pair": "0xc1C8D940c5E4b519acbDfb2E2932B787aa507D4B"
   },
   "addresses": {
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -19,7 +19,7 @@
     "weeklyTop15RewardAddress": "0x82B3B6a20d88d2d8B607B64876885259544DF591",
     "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB",
     "educationFundAddress": "0x2DC1e6D6Ae7b8Be231c54f0de2Ede2973550fBBa",
-    "nodeRewardAddress": "0x06Ba6DA5d1942DA184ad3E521bC51dfF32D721d9"
+    "nodeRewardAddress": "0x8234567890123456789012345678901234567890"
   },
   "tokenomics": {
     "totalSupply": "100000000.0",
