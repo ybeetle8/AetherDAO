@@ -116,15 +116,82 @@ const amountBMin = INITIAL_LIQUIDITY_USDX * slippage / 100n;
 
 ### ⚠️ 问题 5: 缺少 presale 状态管理
 
-AE 合约中 `presaleActive` 默认为 `true`，presale 模式下可能存在交易限制。部署脚本没有处理 presale 状态的切换。
+#### 背景
 
-部署完成后需要在合适的时机手动调用：
+AE 合约（`AEBase.sol`）内置了一个 presale（预售）机制，用于在代币刚部署后的一段时间内**禁止用户从交易对买入 AE**。
+
+相关状态变量（`AEBase.sol:237-239`）：
+
+```solidity
+uint256 public presaleStartTime;   // presale 开始时间
+uint256 public presaleDuration;    // presale 持续时长
+bool public presaleActive;         // presale 是否激活
+```
+
+#### presale 的具体限制
+
+在 `_handleBuy` 函数（`AEBase.sol:737-742`）中，有如下判断：
+
+```solidity
+if (
+    presaleActive &&
+    block.timestamp < presaleStartTime + presaleDuration
+) {
+    revert NotAllowedBuy();
+}
+```
+
+也就是说，当同时满足以下两个条件时，**所有买入交易都会被 revert**：
+
+1. `presaleActive == true`（presale 开关处于开启状态）
+2. 当前时间还在 presale 窗口期内（`block.timestamp < presaleStartTime + presaleDuration`）
+
+注意：presale 期间**只限制买入，不限制卖出**。
+
+#### 当前的问题
+
+AE 合约构造函数中（`AEBase.sol:321-324`）：
+
+```solidity
+contractDeployTime = block.timestamp;
+presaleStartTime = block.timestamp;          // 从部署那一刻开始计时
+presaleDuration = getPresaleDuration();      // 从 Staking 合约获取时长
+presaleActive = true;                        // 默认开启
+```
+
+合约部署后 `presaleActive` 默认为 `true`，`presaleStartTime` 为部署时间。这意味着：
+
+- 部署完成后，在 `presaleDuration` 时间窗口内，**用户无法通过 PancakeSwap 买入 AE**
+- 如果 `presaleDuration` 较长，交易对虽然已创建且有流动性，但用户买入会一直失败（revert `NotAllowedBuy`）
+- 部署脚本中**没有任何步骤**处理这个状态
+
+#### 如何解除 presale 限制
+
+owner 可以调用 `setPresaleActive(false)`（`AEBase.sol:433-441`）来关闭 presale：
 
 ```javascript
 await ae.setPresaleActive(false);
 ```
 
-**建议:** 在脚本中增加此步骤，或至少加注释提醒。
+也可以不手动关闭，等 `presaleDuration` 自然到期后，即使 `presaleActive` 仍为 `true`，由于 `block.timestamp >= presaleStartTime + presaleDuration`，买入也不会被阻止。
+
+#### 建议
+
+在部署脚本中增加明确的处理，二选一：
+
+1. 如果不需要 presale 窗口期，在部署完成后直接关闭：
+   ```javascript
+   console.log("=== 步骤 14: 关闭 presale 限制 ===");
+   await ae.setPresaleActive(false);
+   ```
+
+2. 如果需要保留 presale 窗口期，至少在脚本末尾打印提醒信息：
+   ```javascript
+   const presaleStatus = await ae.getPresaleStatus();
+   console.log("⚠️ presale 当前处于激活状态，买入交易将被阻止");
+   console.log("  剩余时间:", presaleStatus.remainingTime.toString(), "秒");
+   console.log("  如需立即开放交易，请执行: ae.setPresaleActive(false)");
+   ```
 
 ---
 

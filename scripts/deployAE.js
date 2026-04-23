@@ -307,6 +307,14 @@ async function main() {
   console.log("  手续费接收者:", FEE_RECIPIENT);
   console.log("  节点奖励地址:", NODE_REWARD_ADDRESS);
   console.log("  跨链储备地址:", CROSS_CHAIN_RESERVE_ADDRESS);
+  // Presale 状态提醒
+  const presaleStatus = await ae.getPresaleStatus();
+  if (presaleStatus.isInPresale) {
+    console.log("⚠️  presale 当前处于激活状态，买入交易将被阻止");
+    console.log("  剩余时间:", presaleStatus.remainingTime.toString(), "秒");
+    console.log("  如需立即开放交易，请执行: ae.setPresaleActive(false)");
+  }
+
   console.log("\n");
 }
 
