@@ -203,4 +203,107 @@ async function main() {
     }
   });
 
-// PLACEHOLDER_11_5
+  // =========================================================================
+  // 11.5 sync 函数 - 调用 sync 后 USDX 余额与池子同步
+  // =========================================================================
+  await runner.run("11.5", "sync 函数 - USDX 余额与池子同步", async () => {
+    const innerSnapshot = await takeSnapshot();
+    try {
+      // 先给质押合约一些 USDX
+      const syncAmount = parseEther("1000");
+      await setUSDXBalance(stakingAddress, syncAmount);
+
+      const stakingUSDXBefore = await usdx.balanceOf(stakingAddress);
+      assert(stakingUSDXBefore >= syncAmount, "质押合约应有 USDX");
+      console.log(`     sync 前质押合约 USDX: ${formatEther(stakingUSDXBefore)}`);
+
+      // 获取 pair 地址的 USDX 余额
+      const pairAddress = deployment.contracts.Pair;
+      const pairUSDXBefore = await usdx.balanceOf(pairAddress);
+      console.log(`     sync 前 Pair USDX: ${formatEther(pairUSDXBefore)}`);
+
+      // 调用 sync
+      await staking.sync();
+
+      const stakingUSDXAfter = await usdx.balanceOf(stakingAddress);
+      const pairUSDXAfter = await usdx.balanceOf(pairAddress);
+
+      console.log(`     sync 后质押合约 USDX: ${formatEther(stakingUSDXAfter)}`);
+      console.log(`     sync 后 Pair USDX: ${formatEther(pairUSDXAfter)}`);
+
+      // sync 后质押合约的 USDX 应该转移到 pair
+      assertEq(stakingUSDXAfter, 0n, "sync 后质押合约 USDX 应为 0");
+      assert(
+        pairUSDXAfter >= pairUSDXBefore + stakingUSDXBefore,
+        "Pair 的 USDX 应增加"
+      );
+    } finally {
+      await revertSnapshot(innerSnapshot);
+    }
+  });
+
+  // =========================================================================
+  // 11.6 无质押记录操作 - 对不存在的 stakeIndex 调用 unstake/withdrawInterest
+  // =========================================================================
+  await runner.run("11.6a", "无质押记录 - unstake 不存在的 stakeIndex 应 revert", async () => {
+    // userC 没有任何质押记录
+    await safeBindReferral(staking, userC, rootAddress);
+
+    let reverted = false;
+    try {
+      await staking.connect(userC).unstake(0);
+    } catch (e) {
+      reverted = true;
+      console.log(`     错误信息: ${e.message.substring(0, 100)}`);
+    }
+    assert(reverted, "对无质押记录的用户调用 unstake 应 revert");
+  });
+
+  await runner.run("11.6b", "无质押记录 - withdrawInterest 不存在的 stakeIndex 应 revert", async () => {
+    let reverted = false;
+    try {
+      await staking.connect(userC).withdrawInterest(0);
+    } catch (e) {
+      reverted = true;
+      assert(
+        errorContains(e, "Invalid stake index"),
+        "应包含 Invalid stake index 错误"
+      );
+    }
+    assert(reverted, "对无质押记录的用户调用 withdrawInterest 应 revert");
+  });
+
+  await runner.run("11.6c", "无质押记录 - unstake 超出范围的 stakeIndex 应 revert", async () => {
+    // userA 有质押记录（在 11.2 中质押了），尝试访问不存在的索引
+    const count = await staking.stakeCount(userA.address);
+    console.log(`     userA 质押笔数: ${count}`);
+
+    let reverted = false;
+    try {
+      await staking.connect(userA).unstake(Number(count) + 10);
+    } catch (e) {
+      reverted = true;
+      console.log(`     错误信息: ${e.message.substring(0, 100)}`);
+    }
+    assert(reverted, "访问超出范围的 stakeIndex 应 revert");
+  });
+
+  await runner.run("11.6d", "无质押记录 - canWithdrawStake 对不存在索引返回 false", async () => {
+    const canWithdraw = await staking.canWithdrawStake(userC.address, 999);
+    assert(canWithdraw === false, "不存在的索引应返回 false");
+  });
+
+  // =========================================================================
+  // 测试结果汇总
+  // =========================================================================
+  const allPassed = runner.summary();
+  await revertSnapshot(snapshotId);
+  if (!allPassed) process.exit(1);
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

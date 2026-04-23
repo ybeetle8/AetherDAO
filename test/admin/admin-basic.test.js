@@ -33,14 +33,14 @@ async function main() {
 
   const runner = new TestRunner("模块 8：管理员功能 - 第一部分");
 
-  // 用于测试的账户
+  // 用于测试的账户（hardhat 默认 20 个 signer，deployer 占 1 个，accounts 共 19 个: 0~18）
   const newRoot = accounts[14];
   const newFeeRecipient = accounts[15];
   const withdrawTarget = accounts[16];
   const userForReset = accounts[17];
-  const userForBatchReset1 = accounts[18];
-  const userForBatchReset2 = accounts[19];
-  const userForBatchReset3 = accounts[20];
+  const userForBatchReset1 = accounts[10];
+  const userForBatchReset2 = accounts[11];
+  const userForBatchReset3 = accounts[12];
 
   // =========================================================================
   // 8.1 setRootAddress - owner 设置新 root 地址
@@ -68,11 +68,11 @@ async function main() {
     const currentAE = await staking.AE();
     console.log(`     当前 AE 地址: ${currentAE}`);
 
-    // 设置一个新地址（用 deployer 地址模拟，仅验证设置功能）
-    // 注意：设置后需要恢复，否则后续测试会出问题
+    // setAE 内部会调用 AE.approve(router)，所以新地址必须是合约
+    // 用当前 AE 地址重新设置来验证功能和事件
     const innerSnapshot = await takeSnapshot();
 
-    const tx = await staking.connect(deployer).setAE(newRoot.address);
+    const tx = await staking.connect(deployer).setAE(currentAE);
     const receipt = await tx.wait();
 
     // 验证 AEContractSet 事件
@@ -82,7 +82,14 @@ async function main() {
     });
     assert(evt, "应触发 AEContractSet 事件");
     const parsed = staking.interface.parseLog(evt);
-    assertEq(parsed.args.aeAddress, newRoot.address, "事件中 AE 地址应正确");
+    assertEq(parsed.args.aeAddress, currentAE, "事件中 AE 地址应正确");
+    console.log(`     AEContractSet 事件验证通过`);
+
+    // 验证零地址应 revert
+    let reverted = false;
+    try { await staking.connect(deployer).setAE(hre.ethers.ZeroAddress); }
+    catch (e) { reverted = true; }
+    assert(reverted, "零地址应 revert");
 
     // 恢复快照
     await revertSnapshot(innerSnapshot);
