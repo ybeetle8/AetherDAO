@@ -17,7 +17,7 @@
 | 7 | 转移质押储备金 | ✅ 正确 |
 | 8 | 设置 USDX 余额 | ⚠️ 仅限本地 |
 | 9 | 授权 Router | ✅ 正确 |
-| 10 | 添加流动性 | ❌ LP 销毁会 revert |
+| 10 | 添加流动性 | ✅ 正确 |
 | 11 | 转移节点奖励 | ✅ 正确 |
 | 12 | 转移跨链储备 | ✅ 正确 |
 | 13 | 验证部署 | ⚠️ 信息不完整 |
@@ -26,22 +26,26 @@
 
 ## 问题详情
 
-### ❌ 问题 1: LP 代币发送到 address(0) 会 revert
+### ~~问题 1: LP 代币发送到 address(0) — 已撤回~~
 
-**位置:** `deployAE.js:156-167`
-
-```javascript
-const lpRecipient = config.deployment.burnLP ? hre.ethers.ZeroAddress : deployer.address;
-```
-
-当 `burnLP: true` 时，LP 代币接收者为 `address(0)`。但 PancakeSwap V2 的 Pair 合约在 `mint()` 函数中会校验 `to != address(0)`，导致整个 `addLiquidity` 交易 revert。
-
-**修复方案:** 将 LP 销毁地址改为 dead 地址：
-
-```javascript
-const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
-const lpRecipient = config.deployment.burnLP ? DEAD_ADDRESS : deployer.address;
-```
+> **更正说明:** 经核实，此问题判断有误，已撤回。
+>
+> UniswapV2Pair 继承的是自己实现的 `UniswapV2ERC20`，其 `_mint` 函数**没有**零地址校验：
+>
+> ```solidity
+> // UniswapV2ERC20._mint — 无 address(0) 检查
+> function _mint(address to, uint value) internal {
+>     totalSupply = totalSupply.add(value);
+>     balanceOf[to] = balanceOf[to].add(value);
+>     emit Transfer(address(0), to, value);
+> }
+> ```
+>
+> 事实上，Pair 合约在首次添加流动性时自己就会调用 `_mint(address(0), MINIMUM_LIQUIDITY)` 来永久锁定最小流动性。
+> 所以 LP 代币发送到 `address(0)` **不会 revert**，脚本中的写法是可行的。
+>
+> 注意：这与 OpenZeppelin 的 ERC20 不同，OpenZeppelin 的 `_mint` 有 `require(account != address(0))` 校验。
+> UniswapV2/PancakeSwap V2 用的是自己的简化版 ERC20 实现，没有这个限制。
 
 ---
 
@@ -168,7 +172,6 @@ deployer 作为 owner 在步骤 3 `initializeWhitelist()` 中已被加入白名�
 
 | 优先级 | 问题 | 影响 |
 |--------|------|------|
-| 🔴 高 | LP 销毁到 address(0) 会 revert | 部署流程中断 |
 | 🟡 中 | deployer 余额为 0 | 后续无法分配 |
 | 🟡 中 | 主网部署缺少环境判断 | 主网部署失败 |
 | 🟡 中 | 流动性滑点保护为 0 | 主网安全风险 |

@@ -209,7 +209,7 @@ async function main() {
   console.log("║ 1. 部署者 (剩余)                                               ║");
   console.log(`║    数量: ${hre.ethers.formatEther(deployerAEBalance).padEnd(20)} AE (${deployerPercent}%)`.padEnd(65) + "║");
   console.log(`║    地址: ${deployer.address}`.padEnd(65) + "║");
-  console.log("║    用途: 待分配 (团队、营销、生态等)                           ║");
+  console.log("║    用途: 全部已分配完毕，无剩余                               ║");
   console.log("╠════════════════════════════════════════════════════════════════╣");
 
   console.log("║ 2. 质押合约储备金                                              ║");
