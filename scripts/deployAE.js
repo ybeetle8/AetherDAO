@@ -103,44 +103,51 @@ async function main() {
   console.log("  质押合约 AE 余额:", hre.ethers.formatEther(await ae.balanceOf(stakingAddress)), "AE\n");
 
   console.log("=== 步骤 8: 设置 USDX 用于流动性 ===");
-  // 使用 hardhat_setStorageAt 为部署者设置 USDX 余额
-  // USDX (BSC) 的余额存储槽位为 9
-  // 常见槽位为 0, 1, 2, 51（用于代理合约）
 
-  const usdcAmount = INITIAL_LIQUIDITY_USDX;
-  const usdcAmountHex = hre.ethers.zeroPadValue(hre.ethers.toBeHex(usdcAmount), 32);
+  if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
+    // 本地测试网络: 使用 hardhat_setStorageAt 为部署者设置 USDX 余额
+    // USDX (BSC) 的余额存储槽位为 9
+    // 常见槽位为 0, 1, 2, 51（用于代理合约）
 
-  let deployerUsdcBalance = 0n;
-  const slotsToTry = [9, 0, 1, 2, 51]; // USDX 余额映射的存储槽位（9 为主槽位）
+    const usdcAmount = INITIAL_LIQUIDITY_USDX;
+    const usdcAmountHex = hre.ethers.zeroPadValue(hre.ethers.toBeHex(usdcAmount), 32);
 
-  for (const slot of slotsToTry) {
-    // 计算 mapping(address => uint256) 的存储槽位
-    // 方法 1: 标准 ABI 编码
-    const balanceSlot = hre.ethers.keccak256(
-      hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ["address", "uint256"],
-        [deployer.address, slot]
-      )
-    );
+    let deployerUsdcBalance = 0n;
+    const slotsToTry = [9, 0, 1, 2, 51]; // USDX 余额映射的存储槽位（9 为主槽位）
 
-    await hre.network.provider.send("hardhat_setStorageAt", [
-      USDX_ADDRESS,
-      balanceSlot,
-      usdcAmountHex,
-    ]);
+    for (const slot of slotsToTry) {
+      const balanceSlot = hre.ethers.keccak256(
+        hre.ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "uint256"],
+          [deployer.address, slot]
+        )
+      );
 
-    deployerUsdcBalance = await usdx.balanceOf(deployer.address);
+      await hre.network.provider.send("hardhat_setStorageAt", [
+        USDX_ADDRESS,
+        balanceSlot,
+        usdcAmountHex,
+      ]);
 
-    if (deployerUsdcBalance >= INITIAL_LIQUIDITY_USDX) {
-      console.log(`✓ 找到正确的存储槽位: ${slot}`);
-      console.log(`✓ 设置部署者 USDX 余额: ${hre.ethers.formatEther(deployerUsdcBalance)} USDX`);
-      break;
+      deployerUsdcBalance = await usdx.balanceOf(deployer.address);
+
+      if (deployerUsdcBalance >= INITIAL_LIQUIDITY_USDX) {
+        console.log(`✓ 找到正确的存储槽位: ${slot}`);
+        console.log(`✓ 设置部署者 USDX 余额: ${hre.ethers.formatEther(deployerUsdcBalance)} USDX`);
+        break;
+      }
     }
-  }
 
-  // 验证余额是否设置正确
-  if (deployerUsdcBalance < INITIAL_LIQUIDITY_USDX) {
-    throw new Error(`尝试槽位 ${slotsToTry.join(', ')} 后设置 USDX 余额失败。期望: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)}, 实际: ${hre.ethers.formatEther(deployerUsdcBalance)}`);
+    if (deployerUsdcBalance < INITIAL_LIQUIDITY_USDX) {
+      throw new Error(`尝试槽位 ${slotsToTry.join(', ')} 后设置 USDX 余额失败。期望: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)}, 实际: ${hre.ethers.formatEther(deployerUsdcBalance)}`);
+    }
+  } else {
+    // 主网: 检查 deployer 已有余额是否足够
+    const balance = await usdx.balanceOf(deployer.address);
+    if (balance < INITIAL_LIQUIDITY_USDX) {
+      throw new Error(`USDX 余额不足: ${hre.ethers.formatEther(balance)}, 需要: ${hre.ethers.formatEther(INITIAL_LIQUIDITY_USDX)}`);
+    }
+    console.log(`✓ 部署者 USDX 余额充足: ${hre.ethers.formatEther(balance)} USDX`);
   }
   console.log();
 
@@ -155,13 +162,19 @@ async function main() {
   const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 分钟
   const lpRecipient = config.deployment.burnLP ? hre.ethers.ZeroAddress : deployer.address;
 
+  // 主网设置 1% 滑点保护，本地测试网络无需滑点保护
+  const isLocalNetwork = hre.network.name === "localhost" || hre.network.name === "hardhat";
+  const slippage = 99n; // 1% 滑点容忍
+  const amountAMin = isLocalNetwork ? 0n : INITIAL_LIQUIDITY_AE * slippage / 100n;
+  const amountBMin = isLocalNetwork ? 0n : INITIAL_LIQUIDITY_USDX * slippage / 100n;
+
   const addLiquidityTx = await router.addLiquidity(
     aeAddress,
     USDX_ADDRESS,
     INITIAL_LIQUIDITY_AE,
     INITIAL_LIQUIDITY_USDX,
-    0, // amountAMin
-    0, // amountBMin
+    amountAMin,
+    amountBMin,
     lpRecipient, // LP 代币接收者（address(0) 表示销毁）
     deadline
   );
