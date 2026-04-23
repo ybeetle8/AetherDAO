@@ -14,7 +14,7 @@ const {
   assert,
   assertEq,
 } = require("../helpers/setup");
-const { advanceTimeSeconds } = require("../helpers/time");
+const { advanceTimeSeconds, takeSnapshot, revertSnapshot } = require("../helpers/time");
 
 async function safeBindReferral(staking, user, referrer) {
   const isBound = await staking.isBindReferral(user.address);
@@ -29,6 +29,9 @@ function errorContains(error, keyword) {
 
 async function main() {
   console.log("\n=== 模块 1：质押功能 (stake) 测试 - 第一部分 (1.1~1.9) ===\n");
+
+  // 快照：保证每次运行从干净状态开始，测试结束后恢复
+  const snapshotId = await takeSnapshot();
 
   const deployment = loadDeployment();
   const { ae, staking, pair, usdx } = await getContracts(deployment);
@@ -113,6 +116,10 @@ async function main() {
   await advanceTimeSeconds(120); // 推进 2 分钟，超过 NETWORK_CHECK_INTERVAL(1分钟)
   await runner.run("1.6", "5 种期限质押及利率验证", async () => {
     await safeBindReferral(staking, userC, rootAddress);
+    // 重置 7 天质押标记，防止前次运行残留状态影响
+    if (await staking.has7DayStakeBeenUsed(userC.address)) {
+      await staking.connect(deployer).reset7DayStakeUsage(userC.address);
+    }
     const expectedRates = [
       1006000000000000000n, 1009000000000000000n, 1011000000000000000n,
       1015000000000000000n, 1020000000000000000n,
@@ -193,6 +200,10 @@ async function main() {
   });
 
   const allPassed = runner.summary();
+
+  // 恢复快照，确保不污染后续测试
+  await revertSnapshot(snapshotId);
+
   if (!allPassed) process.exit(1);
 }
 
