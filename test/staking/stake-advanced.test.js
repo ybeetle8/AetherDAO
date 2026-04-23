@@ -14,6 +14,7 @@ const {
   assert,
   assertEq,
 } = require("../helpers/setup");
+const { advanceTimeSeconds } = require("../helpers/time");
 
 async function safeBindReferral(staking, user, referrer) {
   const isBound = await staking.isBindReferral(user.address);
@@ -50,6 +51,7 @@ async function main() {
   // =========================================================================
   // 1.10 流动性添加验证
   // =========================================================================
+  await advanceTimeSeconds(120); // 重置近期流入窗口
   await runner.run("1.10", "流动性添加验证", async () => {
     await safeBindReferral(staking, userF, rootAddress);
 
@@ -80,6 +82,7 @@ async function main() {
   // =========================================================================
   // 1.12 多次质押累计验证
   // =========================================================================
+  await advanceTimeSeconds(120);
   await runner.run("1.12", "多次质押累计验证", async () => {
     await safeBindReferral(staking, userG, rootAddress);
 
@@ -87,7 +90,9 @@ async function main() {
     const countBefore = Number(await staking.stakeCount(userG.address));
 
     await staking.connect(userG).stake(parseEther("200"), 1);
+    await advanceTimeSeconds(120);
     await staking.connect(userG).stake(parseEther("300"), 2);
+    await advanceTimeSeconds(120);
     await staking.connect(userG).stake(parseEther("500"), 3);
 
     const principalAfter = await staking.principalBalance(userG.address);
@@ -100,6 +105,7 @@ async function main() {
   // =========================================================================
   // 1.13 动态最大质押额验证
   // =========================================================================
+  await advanceTimeSeconds(120);
   await runner.run("1.13", "动态最大质押额验证", async () => {
     const maxStake = await staking.maxStakeAmount();
     console.log(`     当前动态最大质押额: ${formatEther(maxStake)} USDT`);
@@ -127,6 +133,7 @@ async function main() {
   // =========================================================================
   // 1.15 Staked 事件参数验证
   // =========================================================================
+  await advanceTimeSeconds(120);
   await runner.run("1.15", "Staked 事件参数验证", async () => {
     const stakeAmount = parseEther("200");
     const tx = await staking.connect(userH).stake(stakeAmount, 2);

@@ -14,6 +14,7 @@ const {
   assert,
   assertEq,
 } = require("../helpers/setup");
+const { advanceTimeSeconds } = require("../helpers/time");
 
 async function safeBindReferral(staking, user, referrer) {
   const isBound = await staking.isBindReferral(user.address);
@@ -107,32 +108,9 @@ async function main() {
   });
 
   // =========================================================================
-  // 1.5 用户总质押上限 10000 USDT
+  // 1.6 5 种期限质押及利率验证（先推进时间，重置近期流入窗口）
   // =========================================================================
-  await runner.run("1.5", "用户总质押上限 10000 USDT", async () => {
-    await safeBindReferral(staking, userB, rootAddress);
-    let totalStaked = await staking.principalBalance(userB.address);
-    let idx = 1;
-    while (true) {
-      const maxStake = await staking.maxStakeAmount();
-      const remaining = await staking.getRemainingStakeCapacity(userB.address);
-      const stakeAmt = maxStake < remaining ? maxStake : remaining;
-      if (stakeAmt < parseEther("100")) break;
-      await staking.connect(userB).stake(stakeAmt, (idx % 4) + 1);
-      totalStaked += stakeAmt;
-      idx++;
-    }
-    const remaining = await staking.getRemainingStakeCapacity(userB.address);
-    console.log(`     已质押: ${formatEther(totalStaked)}, 剩余: ${formatEther(remaining)}`);
-    let reverted = false;
-    try { await staking.connect(userB).stake(parseEther("100"), 1); }
-    catch (e) { reverted = true; }
-    assert(reverted, "超过总上限应 revert");
-  });
-
-  // =========================================================================
-  // 1.6 5 种期限质押及利率验证
-  // =========================================================================
+  await advanceTimeSeconds(120); // 推进 2 分钟，超过 NETWORK_CHECK_INTERVAL(1分钟)
   await runner.run("1.6", "5 种期限质押及利率验证", async () => {
     await safeBindReferral(staking, userC, rootAddress);
     const expectedRates = [
@@ -161,6 +139,32 @@ async function main() {
     try { await staking.connect(userC).stake(parseEther("100"), 0); }
     catch (e) { reverted = true; assert(errorContains(e, "7-day"), "应提示7天限制"); }
     assert(reverted, "应 revert");
+  });
+
+  // =========================================================================
+  // 1.5 用户总质押上限 10000 USDT（大量质押，放在 1.6/1.7 后）
+  // =========================================================================
+  await advanceTimeSeconds(120); // 重置近期流入窗口
+  await runner.run("1.5", "用户总质押上限 10000 USDT", async () => {
+    await safeBindReferral(staking, userB, rootAddress);
+    let totalStaked = await staking.principalBalance(userB.address);
+    let idx = 1;
+    while (true) {
+      await advanceTimeSeconds(120); // 重置近期流入窗口
+      const maxStake = await staking.maxStakeAmount();
+      const remaining = await staking.getRemainingStakeCapacity(userB.address);
+      const stakeAmt = maxStake < remaining ? maxStake : remaining;
+      if (stakeAmt < parseEther("100")) break;
+      await staking.connect(userB).stake(stakeAmt, (idx % 4) + 1);
+      totalStaked += stakeAmt;
+      idx++;
+    }
+    const remaining = await staking.getRemainingStakeCapacity(userB.address);
+    console.log(`     已质押: ${formatEther(totalStaked)}, 剩余: ${formatEther(remaining)}`);
+    let reverted = false;
+    try { await staking.connect(userB).stake(parseEther("100"), 1); }
+    catch (e) { reverted = true; }
+    assert(reverted, "超过总上限应 revert");
   });
 
   // =========================================================================
