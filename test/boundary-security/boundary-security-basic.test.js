@@ -104,7 +104,7 @@ async function main() {
 
   await runner.run("11.1d", "零地址检查 - lockReferral(address(0)) 默认绑定到 root", async () => {
     // lockReferral 传入 address(0) 时应默认绑定到 rootAddress
-    const testUser = accounts[25];
+    const testUser = userD; // 使用 accounts[13]
     await setUSDXBalance(testUser.address, parseEther("10000"));
     await approveUSDX(usdx, testUser, stakingAddress, parseEther("10000"));
 
@@ -147,8 +147,9 @@ async function main() {
   await runner.run("11.3", "整数溢出 - 大额质押 + 长期限复利计算不溢出", async () => {
     await safeBindReferral(staking, userB, rootAddress);
 
-    // 质押最大单次金额 1000 USDT，使用最长期限 365 天 (index=4)
-    const maxAmount = parseEther("1000");
+    // 质押当前允许的最大金额，使用最长期限 365 天 (index=4)
+    const maxAmount = await staking.maxStakeAmount();
+    console.log(`     当前动态最大质押额: ${formatEther(maxAmount)} USDT`);
     await staking.connect(userB).stake(maxAmount, 4);
 
     // 推进 365 天

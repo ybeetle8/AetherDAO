@@ -38,10 +38,10 @@ async function main() {
   const parseEther = hre.ethers.parseEther;
   const formatEther = hre.ethers.formatEther;
 
-  // 使用靠后的账户避免与其他模块冲突
-  const userA = accounts[30];
-  const userB = accounts[31];
-  const userC = accounts[32];
+  // 使用靠后的账户避免与其他模块冲突（共 20 个 signer，accounts 最多到 [18]）
+  const userA = accounts[16];
+  const userB = accounts[17];
+  const userC = accounts[18];
 
   const runner = new TestRunner("模块 10：滑点保护与 DEX 交互");
 

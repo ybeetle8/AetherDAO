@@ -45,15 +45,15 @@ async function main() {
   const formatEther = hre.ethers.formatEther;
 
   const runner = new TestRunner("模块 11：边界条件与安全 - 第二部分");
-  // 测试账户
-  const userE = accounts[14];
-  const userF = accounts[15];
-  const userG = accounts[16];
-  const userH = accounts[17];
-  const userI = accounts[18];
-  const userJ = accounts[19];
-  const userK = accounts[20];
-  const userL = accounts[21];
+  // 测试账户 (hardhat 默认 20 个 signer, deployer 占 1 个, accounts 共 19 个: 0~18)
+  const userE = accounts[0];
+  const userF = accounts[1];
+  const userG = accounts[2];
+  const userH = accounts[3];
+  const userI = accounts[4];
+  const userJ = accounts[5];
+  const userK = accounts[6];
+  const userL = accounts[7];
 
   // =========================================================================
   // 11.7 合约调用限制 - 主网模式下合约地址调用 stake 应被拒绝（EOA 检查）
@@ -98,12 +98,13 @@ async function main() {
   await advanceTimeSeconds(120);
   await runner.run("11.8", "多用户并发质押 - 验证状态隔离", async () => {
     const users = [userF, userG, userH, userI, userJ];
+    // 使用不超过动态最大值的金额
     const amounts = [
       parseEther("100"),
+      parseEther("150"),
       parseEther("200"),
+      parseEther("250"),
       parseEther("300"),
-      parseEther("500"),
-      parseEther("1000"),
     ];
 
     // 为所有用户设置余额、授权、绑定推荐人
@@ -216,7 +217,7 @@ async function main() {
     const maxAmount = await staking.maxStakeAmount();
     const overAmount = maxAmount + 1n;
 
-    const testUser = accounts[22];
+    const testUser = accounts[8];
     await setUSDXBalance(testUser.address, parseEther("50000"));
     await approveUSDX(usdx, testUser, stakingAddress, parseEther("50000"));
     await safeBindReferral(staking, testUser, rootAddress);
@@ -240,7 +241,7 @@ async function main() {
   // =========================================================================
   await advanceTimeSeconds(120);
   await runner.run("11.11", "总质押恰好 10000 USDT - 边界验证", async () => {
-    const testUser = accounts[23];
+    const testUser = accounts[9];
     await setUSDXBalance(testUser.address, parseEther("50000"));
     await approveUSDX(usdx, testUser, stakingAddress, parseEther("50000"));
     await safeBindReferral(staking, testUser, rootAddress);
