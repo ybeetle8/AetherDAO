@@ -213,8 +213,8 @@ async function main() {
     await staking.connect(walletD).lockReferral(walletC.address);
     await staking.connect(walletE).lockReferral(walletD.address);
 
-    // 验证推荐链
-    const refs = await staking.getReferrals(walletE.address, 5);
+    // 验证推荐链（使用完整签名避免重载歧义）
+    const refs = await staking["getReferrals(address,uint8)"](walletE.address, 5);
     assert(refs.length >= 5, `推荐链应至少5级, 实际 ${refs.length}`);
 
     // A 质押较多以达到较高等级 (通过 KPI 设置)

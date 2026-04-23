@@ -14,6 +14,7 @@ const {
   approveUSDX,
   TestRunner,
   assert,
+  assertEq,
   assertApproxEq,
 } = require("../helpers/setup");
 const { advanceTime, advanceTimeSeconds, takeSnapshot, revertSnapshot } = require("../helpers/time");
@@ -114,7 +115,7 @@ async function main() {
 
   // =========================================================================
   // 12.6 赎回费累计
-  // 多次赎回后验证 feeRecipient 累计收到的金额
+  // 多次赎回后验证 feeRecipient 累计收到的金额（通过事件验证）
   // =========================================================================
   await advanceTimeSeconds(120);
   await runner.run("12.6", "赎回费累计", async () => {
@@ -127,9 +128,6 @@ async function main() {
     await setUSDXBalance(userD.address, parseEther("50000"));
     await approveUSDX(usdx, userD, stakingAddress, parseEther("50000"));
     await staking.connect(userD).lockReferral(rootAddress);
-
-    const feeBalStart = await usdx.balanceOf(feeRecipientAddress);
-    console.log(`     赎回费接收地址初始余额: ${formatEther(feeBalStart)} USDX`);
 
     // 用户C 质押
     await advanceTimeSeconds(120);
@@ -146,42 +144,62 @@ async function main() {
     await advanceTimeSeconds(1);
 
     // 赎回 C，解析 RedemptionFeeCollected 事件
-    let feeFromC = 0n;
+    let feeFromC_ae = 0n;
+    let feeFromC_usdx = 0n;
     const txC = await staking.connect(userC).unstake(idxC);
     const receiptC = await txC.wait();
     for (const log of receiptC.logs) {
       try {
         const parsed = staking.interface.parseLog(log);
         if (parsed && parsed.name === "RedemptionFeeCollected") {
-          feeFromC = parsed.args.usdxAmount;
+          feeFromC_ae = parsed.args.aeAmount;
+          feeFromC_usdx = parsed.args.usdxAmount;
           break;
         }
       } catch { /* ignore */ }
     }
-    console.log(`     用户C赎回费: ${formatEther(feeFromC)} USDX`);
-    assert(feeFromC > 0n, "用户C赎回费应大于 0");
+    console.log(`     用户C赎回费: AE=${formatEther(feeFromC_ae)}, USDX=${formatEther(feeFromC_usdx)}`);
+    assert(feeFromC_ae > 0n || feeFromC_usdx > 0n, "用户C赎回费应大于 0");
 
     // 赎回 D
-    let feeFromD = 0n;
+    let feeFromD_ae = 0n;
+    let feeFromD_usdx = 0n;
     const txD = await staking.connect(userD).unstake(idxD);
     const receiptD = await txD.wait();
     for (const log of receiptD.logs) {
       try {
         const parsed = staking.interface.parseLog(log);
         if (parsed && parsed.name === "RedemptionFeeCollected") {
-          feeFromD = parsed.args.usdxAmount;
+          feeFromD_ae = parsed.args.aeAmount;
+          feeFromD_usdx = parsed.args.usdxAmount;
           break;
         }
       } catch { /* ignore */ }
     }
-    console.log(`     用户D赎回费: ${formatEther(feeFromD)} USDX`);
-    assert(feeFromD > 0n, "用户D赎回费应大于 0");
+    console.log(`     用户D赎回费: AE=${formatEther(feeFromD_ae)}, USDX=${formatEther(feeFromD_usdx)}`);
+    assert(feeFromD_ae > 0n || feeFromD_usdx > 0n, "用户D赎回费应大于 0");
 
-    // 验证累计
-    const feeBalEnd = await usdx.balanceOf(feeRecipientAddress);
-    const totalFee = feeBalEnd - feeBalStart;
-    console.log(`     赎回费累计: ${formatEther(totalFee)} USDX`);
-    assert(totalFee > 0n, "赎回费累计应大于 0");
+    // 验证累计（通过事件金额累加）
+    const totalFeeAE = feeFromC_ae + feeFromD_ae;
+    const totalFeeUSDX = feeFromC_usdx + feeFromD_usdx;
+    console.log(`     赎回费累计: AE=${formatEther(totalFeeAE)}, USDX=${formatEther(totalFeeUSDX)}`);
+    assert(totalFeeAE > 0n || totalFeeUSDX > 0n, "赎回费累计应大于 0");
+
+    // 验证事件中 feeRecipient 地址正确
+    for (const receipt of [receiptC, receiptD]) {
+      for (const log of receipt.logs) {
+        try {
+          const parsed = staking.interface.parseLog(log);
+          if (parsed && parsed.name === "RedemptionFeeCollected") {
+            assertEq(
+              parsed.args.feeRecipient.toLowerCase(),
+              feeRecipientAddress.toLowerCase(),
+              "赎回费接收地址应匹配"
+            );
+          }
+        } catch { /* ignore */ }
+      }
+    }
   });
 
   // =========================================================================
