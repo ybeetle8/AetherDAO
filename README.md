@@ -7,8 +7,10 @@
 ## 已部署的合约地址
 
 
-合约的参数在  ae-deployment.json  文件上, 有重新部署后会改变, 地址要从这文件读
-说明文档在: doc/ae-deployment-json 前端对接说明.md
+合约的参数在 [ae-deployment.json](ae-deployment.json) 文件上, 有重新部署后会改变, 地址要从这文件读
+说明文档在: [ae-deployment-json 前端对接说明](doc/ae-deployment-json%20前端对接说明.md)
+前端开发文档: [前端开发文档](doc/前端开发文档.md)
+
 
 
 
