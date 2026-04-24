@@ -486,13 +486,6 @@ abstract contract StakingBase is Ownable, IStaking {
         _hasLocked[_rootAddress] = true;
     }
 
-    function sync() external {
-        uint256 w_bal = IERC20(USDX).balanceOf(address(this));
-        address pair = AE.getUniswapV2Pair();
-        IERC20(USDX).transfer(pair, w_bal);
-        IUniswapV2Pair(pair).sync();
-    }
-
     // =========================================================================
     // EXTERNAL VIEW FUNCTIONS
     // =========================================================================

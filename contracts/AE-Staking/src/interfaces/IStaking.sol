@@ -522,11 +522,6 @@ interface IStaking {
     // =========================================================================
 
     /**
-     * @notice Synchronizes USDX balance with the pool
-     */
-    function sync() external;
-
-    /**
      * @notice Emergency withdrawal of AE tokens (owner only)
      * @param to Recipient address
      * @param _amount Amount to withdraw

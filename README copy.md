@@ -1,23 +1,29 @@
 # SYI 系统部署与测试命令
 
-**最新版本**: v1.0 - 完全版本
+**最新版本**: v2.0 - 完全无税版本 (2025-10-13)
 
 我已建立了主网的镜像节点，并部署了合约，以供开发与测试。
 
 ## 已部署的合约地址
 
+- **SYI 币**: `0x853BF2ff186910A5Df8e9D8C48d24da883484C68`
+  - 以 `syi-deployment.json` 文件中 `SYI` 值为准
+- **Staking 质押合约**: `0x0F30b6db7ffFe0D465f989BFcC8a73A7cc4D69E9`
+  - 以 `syi-deployment.json` 文件中 `Staking` 值为准
+- **USDT 币**: `0x55d398326f99059fF775485246999027B3197955`
+- **Root 钱包（根推荐人）**: `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`
+- **质押费钱包（1%）**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
+- **ABI 文件位置**: `abi/SYI.json`, `abi/Staking.json`
 
-合约的参数在  ae-deployment.json  文件上, 有重新部署后会改变, 地址要从这文件读
-说明文档在: doc/ae-deployment-json 前端对接说明.md
-
-
+> **⚠️ 重要**: 为了方便测试质押，合约已改为 **3 秒钟 = 1 天**  LP池子已添加4万USDT和4000万SYI
+> 例如：质押 30 天，现实中等 90 秒即完成
 
 ## 钱包测试 RPC
 
 可在 MetaMask 钱包中添加以下 RPC（记得添加代币 SYI 与 USDT）：
 
 - **网络名称**: GoChain Testnet
-- **RPC URL**: http://47.109.157.92:8545  
+- **RPC URL**: http://47.109.157.92:8545   不用的:https://bsc.ai-hello.cn:8545/    
 - **Chain ID**: 56
 - **币名**: GO（BNB 的别名）
 
@@ -34,10 +40,10 @@
 # 测试,前端,后端 都能拉我这个代码直接运行测试代码,所有环境都对的,拉下来直接跑就行.
 
 # 第一步：克隆代码
-git clone https://github.com/ybeetle8/AetherDAO.git
+git clone https://github.com/ybeetle8/stable-yield.git
 
 # 第二步：进入项目目录
-cd AetherDAO
+cd stable-yield
 
 # 第三步：安装依赖
 npm install
