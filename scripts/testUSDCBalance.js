@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 
 async function main() {
     const USDX_ADDRESS = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
-    const testAddress = "0x0934b424878B620905089031017A545C584F577A";
+    const testAddress = "0x2988FCb0157037BD88e4EC51ac92d48a79441730";
     
     const usdx = await ethers.getContractAt("IERC20", USDX_ADDRESS);
     
@@ -20,4 +20,4 @@ async function main() {
     console.log(`USDX 合约代码长度: ${code.length}`);
 }
 
-main().catch(console.error);
+main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });

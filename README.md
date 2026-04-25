@@ -1,4 +1,4 @@
-# SYI 系统部署与测试命令
+# AetherDAO 系统部署与测试命令
 
 **最新版本**: v1.0 - 完全版本
 
@@ -18,10 +18,10 @@
 
 可在 MetaMask 钱包中添加以下 RPC（记得添加代币 SYI 与 USDT）：
 
-- **网络名称**: GoChain Testnet
+- **网络名称**: BSChome
 - **RPC URL**: http://47.109.157.92:8545  
-- **Chain ID**: 56
-- **币名**: GO（BNB 的别名）
+- **Chain ID**: 10056
+- **币名**: tBNB（BNB 的别名）
 
 ## 测试代码及构建流程
 

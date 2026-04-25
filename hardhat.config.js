@@ -47,10 +47,21 @@ module.exports = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
-      chainId: 56,
+      chainId: 10056,
       forking: {
         url: "https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/",
+        blockNumber: 64340000,
         enabled: true
+      },
+      chains: {
+        56: {
+          hardforkHistory: {
+            berlin: 0,
+            london: 0,
+            shanghai: 0,
+            cancun: 0,
+          },
+        },
       },
       mining: {
         auto: true,
@@ -61,7 +72,7 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
       //url: "https://bsc.ai-hello.cn/",
-      chainId: 56,
+      chainId: 10056,
       accounts: {
         mnemonic: "test test test test test test test test test test test junk"
       }

@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 // ============ 配置区域（修改这里） ============
-const TARGET_ADDRESS = "0x2988FCb0157037BD88e4EC51ac92d48a79441730"; // 修改为你的钱包地址
+const TARGET_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 修改为你的钱包地址
 const BNB_AMOUNT = "100";    // 发送 BNB 数量
 const USDC_AMOUNT = "10000"; // 发送 USDC 数量
 // =============================================
@@ -27,9 +27,11 @@ async function main() {
   console.log("\n--- 发送 BNB ---");
 
   const bnbWei = ethers.parseEther(BNB_AMOUNT);
+  const currentBnb = await ethers.provider.getBalance(TARGET_ADDRESS);
+  const newBnb = currentBnb + bnbWei;
   await hre.network.provider.send("hardhat_setBalance", [
     TARGET_ADDRESS,
-    ethers.toBeHex(bnbWei),
+    ethers.toBeHex(newBnb),
   ]);
 
   const bnbBalance = await ethers.provider.getBalance(TARGET_ADDRESS);
@@ -54,7 +56,9 @@ async function main() {
   );
 
   const usdcAmount = ethers.parseEther(USDC_AMOUNT);
-  const usdcAmountHex = ethers.zeroPadValue(ethers.toBeHex(usdcAmount), 32);
+  const currentUsdc = await usdc.balanceOf(TARGET_ADDRESS);
+  const newUsdc = currentUsdc + usdcAmount;
+  const usdcAmountHex = ethers.zeroPadValue(ethers.toBeHex(newUsdc), 32);
 
   // 尝试多个存储槽位（不同 ERC20 合约 balanceOf 映射的槽位不同）
   const slotsToTry = [9, 0, 1, 2, 51];
@@ -75,7 +79,7 @@ async function main() {
     ]);
 
     const balance = await usdc.balanceOf(TARGET_ADDRESS);
-    if (balance >= usdcAmount) {
+    if (balance >= newUsdc) {
       console.log(`✓ 找到正确的存储槽位: ${slot}`);
       console.log(`✓ 已发送 ${USDC_AMOUNT} USDC`);
       console.log(`  当前 USDC 余额: ${ethers.formatEther(balance)} USDC`);
