@@ -38,6 +38,16 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
   console.log("部署者地址:", deployer.address);
+
+  // 本地测试网络: 给部署者充值 BNB 用于支付 gas
+  if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
+    await hre.network.provider.send("hardhat_setBalance", [
+      deployer.address,
+      "0x56BC75E2D63100000" // 100 BNB
+    ]);
+    console.log("✓ 本地测试网络: 已为部署者设置 100 BNB");
+  }
+
   console.log("部署者余额:", hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), "BNB\n");
 
   // 获取合约实例
