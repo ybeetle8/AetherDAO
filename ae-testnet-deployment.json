@@ -1,0 +1,19 @@
+{
+  "completedStep": 16,
+  "contracts": {
+    "MockUSDC": "0xdce5D2C10D8c63e473c078b21094eF8C68AF6fD6",
+    "Staking": "0x37b4257a33451016E08B679417ebdefa426CBa74",
+    "AE": "0x563f2cb84EAB68BEdE63a0F5a5F27876575cD58e",
+    "Pair": "0xFaDcECc246ddDdf886edB71C0D7aCAE378C328c1",
+    "LiquidityStaking": "0x0B4C150840F0b73bfe0C6077eF5D3A1E404B2A57",
+    "FundRelay": "0xaEa8E7adb1E9Ba92f341B08968954f95ab94922a"
+  },
+  "timestamp": "2026-04-26T10:44:18.205Z",
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployer": "0x4DC1fA4BBfBc92E654473c225C490EEcBcfec2c0",
+  "pancakeSwap": {
+    "router": "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+    "factory": "0x6725F303b657a9451d8BA641348b6761A6CC7a17"
+  }
+}
