@@ -1,10 +1,15 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 // =====================================================================
 // AE 主网部署脚本
 // 用法: npx hardhat run scripts/deployAEMain.js --network bsc
+//
+// 支持断点续跑：中途失败后重新运行，自动跳过已完成的步骤
+// 状态文件: ae-mainnet-deployment.json
+// 如需全新部署，删除该文件后重新运行
 //
 // 注意事项:
 // 1. 部署前务必替换 ae-mainnet-config.json 中所有占位地址
@@ -42,6 +47,28 @@ const CROSS_CHAIN_RESERVE_ADDRESS = config.addresses.crossChainReserveAddress;  
 const STAKING_RESERVE = hre.ethers.parseEther(config.tokenomics.stakingReserve);
 const NODE_REWARD_ALLOCATION = hre.ethers.parseEther(config.tokenomics.nodeRewardAllocation);
 const CROSS_CHAIN_RESERVE_ALLOCATION = hre.ethers.parseEther(config.tokenomics.crossChainReserveAllocation);
+
+// 状态文件路径
+const STATE_PATH = path.join(__dirname, "..", "ae-mainnet-deployment.json");
+
+// =====================================================================
+// 状态管理: 每完成一步保存，断点续跑时读取跳过
+// =====================================================================
+function loadState() {
+  if (fs.existsSync(STATE_PATH)) {
+    const data = JSON.parse(fs.readFileSync(STATE_PATH, "utf8"));
+    console.log("✓ 检测到已有部署状态，将从断点继续");
+    console.log("  已完成步骤:", data.completedStep || 0);
+    console.log();
+    return data;
+  }
+  return { completedStep: 0, contracts: {} };
+}
+
+function saveState(state) {
+  state.timestamp = new Date().toISOString();
+  fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
+}
 
 // =====================================================================
 // 地址校验：确保所有地址已替换为真实地址
@@ -81,24 +108,27 @@ function validateAddresses() {
 }
 
 // =====================================================================
-// BSCScan 合约验证
+// BSCScan 合约验证 (通过子进程调用 npx hardhat verify)
 // =====================================================================
-async function verifyContract(name, address, constructorArgs, contractPath) {
+function verifyContract(name, address, constructorArgs, contractPath, networkName) {
   console.log(`  验证 ${name} (${address})...`);
   try {
-    await hre.run("verify:verify", {
-      address: address,
-      constructorArguments: constructorArgs,
-      contract: contractPath,
-    });
-    console.log(`  ✓ ${name} 验证成功`);
+    const args = constructorArgs.map(a => `"${a}"`).join(" ");
+    const cmd = `npx hardhat verify --network ${networkName} --contract "${contractPath}" ${address} ${args}`;
+    const output = execSync(cmd, { encoding: "utf8", timeout: 120000 });
+    if (output.includes("Already Verified") || output.includes("already verified")) {
+      console.log(`  ✓ ${name} 已经验证过了`);
+    } else {
+      console.log(`  ✓ ${name} 验证成功`);
+    }
     return true;
   } catch (error) {
-    if (error.message.includes("Already Verified") || error.message.includes("already verified")) {
+    const stderr = error.stderr || error.stdout || error.message || "";
+    if (stderr.includes("Already Verified") || stderr.includes("already verified")) {
       console.log(`  ✓ ${name} 已经验证过了`);
       return true;
     }
-    console.error(`  ✗ ${name} 验证失败: ${error.message}`);
+    console.error(`  ✗ ${name} 验证失败: ${stderr.split("\n").slice(0, 3).join(" ")}`);
     return false;
   }
 }
@@ -136,6 +166,11 @@ async function main() {
   console.log("=== 地址校验 ===");
   validateAddresses();
 
+  // 加载断点状态
+  const state = loadState();
+  const done = state.completedStep || 0;
+  const C = state.contracts; // 已部署合约地址的简写
+
   // 打印配置摘要
   console.log("=== 配置摘要 ===");
   console.log("  USDC:          ", USDX_ADDRESS);
@@ -156,175 +191,265 @@ async function main() {
   // 获取合约实例
   const factory = await hre.ethers.getContractAt("IUniswapV2Factory", FACTORY_ADDRESS);
 
-  // 用于存储部署结果
-  const deployed = {};
-
   // =================================================================
   // 步骤 1: 部署 Staking 合约
   // =================================================================
-  console.log("=== 步骤 1/14: 部署 Staking 合约 ===");
-  const Staking = await hre.ethers.getContractFactory("contracts/AE-Staking/src/mainnet/Staking.sol:Staking");
-  const staking = await Staking.deploy(
-    USDX_ADDRESS,
-    ROUTER_ADDRESS,
-    ROOT_ADDRESS,
-    FEE_RECIPIENT,
-    EDUCATION_FUND_ADDRESS
-  );
-  await staking.waitForDeployment();
-  deployed.staking = await staking.getAddress();
-  console.log("✓ Staking 合约已部署:", deployed.staking);
-  console.log();
+  if (done < 1) {
+    console.log("=== 步骤 1/13: 部署 Staking 合约 ===");
+    const Staking = await hre.ethers.getContractFactory("contracts/AE-Staking/src/mainnet/Staking.sol:Staking");
+    const staking = await Staking.deploy(
+      USDX_ADDRESS,
+      ROUTER_ADDRESS,
+      ROOT_ADDRESS,
+      FEE_RECIPIENT,
+      EDUCATION_FUND_ADDRESS
+    );
+    await staking.waitForDeployment();
+    C.Staking = await staking.getAddress();
+    state.completedStep = 1;
+    saveState(state);
+    console.log("✓ Staking 合约已部署:", C.Staking);
+    console.log();
+  } else {
+    console.log("=== 步骤 1/13: Staking 已存在，跳过 ===", C.Staking);
+    console.log();
+  }
 
   // =================================================================
   // 步骤 2: 部署 AE 代币合约
   // =================================================================
-  console.log("=== 步骤 2/14: 部署 AE 代币合约 ===");
-  const AE = await hre.ethers.getContractFactory("contracts/AE/src/mainnet/AE.sol:AE");
-  const ae = await AE.deploy(
-    USDX_ADDRESS,
-    ROUTER_ADDRESS,
-    deployed.staking,
-    MARKETING_ADDRESS,
-    BUY_TAX_NODE_REWARD_ADDRESS,
-    BUY_TAX_COMMUNITY_REWARD_ADDRESS,
-    MARKETING_FUND_ADDRESS,
-    WEEKLY_TOP15_REWARD_ADDRESS
-  );
-  await ae.waitForDeployment();
-  deployed.ae = await ae.getAddress();
-  console.log("✓ AE 代币已部署:", deployed.ae);
-  console.log("  初始供应量:", hre.ethers.formatEther(await ae.balanceOf(deployer.address)), "AE");
-  console.log();
+  if (done < 2) {
+    console.log("=== 步骤 2/13: 部署 AE 代币合约 ===");
+    const AE = await hre.ethers.getContractFactory("contracts/AE/src/mainnet/AE.sol:AE");
+    const ae = await AE.deploy(
+      USDX_ADDRESS,
+      ROUTER_ADDRESS,
+      C.Staking,
+      MARKETING_ADDRESS,
+      BUY_TAX_NODE_REWARD_ADDRESS,
+      BUY_TAX_COMMUNITY_REWARD_ADDRESS,
+      MARKETING_FUND_ADDRESS,
+      WEEKLY_TOP15_REWARD_ADDRESS
+    );
+    await ae.waitForDeployment();
+    C.AE = await ae.getAddress();
+    state.completedStep = 2;
+    saveState(state);
+    console.log("✓ AE 代币已部署:", C.AE);
+    console.log();
+  } else {
+    console.log("=== 步骤 2/13: AE 已存在，跳过 ===", C.AE);
+    console.log();
+  }
+
+  // 获取 AE 合约实例 (续跑时也需要)
+  const ae = await hre.ethers.getContractAt("contracts/AE/src/mainnet/AE.sol:AE", C.AE);
 
   // =================================================================
   // 步骤 3: 初始化 AE 白名单
   // =================================================================
-  console.log("=== 步骤 3/14: 初始化 AE 白名单 ===");
-  const initWhitelistTx = await ae.initializeWhitelist();
-  await initWhitelistTx.wait();
-  console.log("✓ 白名单已初始化 (Owner, AE, Staking, Marketing, Router)");
-  console.log();
+  if (done < 3) {
+    console.log("=== 步骤 3/13: 初始化 AE 白名单 ===");
+    const tx = await ae.initializeWhitelist();
+    await tx.wait();
+    state.completedStep = 3;
+    saveState(state);
+    console.log("✓ 白名单已初始化 (Owner, AE, Staking, Marketing, Router)");
+    console.log();
+  } else {
+    console.log("=== 步骤 3/13: 白名单已初始化，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
-  // 步骤 4: 配置 Staking 合约
+  // 步骤 4: Staking.setAE()
   // =================================================================
-  console.log("=== 步骤 4/14: Staking.setAE() ===");
-  const setAETx = await staking.setAE(deployed.ae);
-  await setAETx.wait();
-  console.log("✓ Staking 合约已关联 AE 代币");
-  console.log();
+  if (done < 4) {
+    console.log("=== 步骤 4/13: Staking.setAE() ===");
+    const staking = await hre.ethers.getContractAt("contracts/AE-Staking/src/mainnet/Staking.sol:Staking", C.Staking);
+    const tx = await staking.setAE(C.AE);
+    await tx.wait();
+    state.completedStep = 4;
+    saveState(state);
+    console.log("✓ Staking 合约已关联 AE 代币");
+    console.log();
+  } else {
+    console.log("=== 步骤 4/13: Staking.setAE() 已完成，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 5: 创建 AE/USDC 交易对
   // =================================================================
-  console.log("=== 步骤 5/14: 创建 AE/USDC 交易对 ===");
-  const createPairTx = await factory.createPair(deployed.ae, USDX_ADDRESS);
-  await createPairTx.wait();
-  deployed.pair = await factory.getPair(deployed.ae, USDX_ADDRESS);
-  console.log("✓ AE/USDC 交易对已创建:", deployed.pair);
-  console.log();
+  if (done < 5) {
+    console.log("=== 步骤 5/13: 创建 AE/USDC 交易对 ===");
+    const tx = await factory.createPair(C.AE, USDX_ADDRESS);
+    await tx.wait();
+    C.Pair = await factory.getPair(C.AE, USDX_ADDRESS);
+    state.completedStep = 5;
+    saveState(state);
+    console.log("✓ AE/USDC 交易对已创建:", C.Pair);
+    console.log();
+  } else {
+    console.log("=== 步骤 5/13: 交易对已存在，跳过 ===", C.Pair);
+    console.log();
+  }
 
   // =================================================================
-  // 步骤 6: 配置 AE 交易对
+  // 步骤 6: AE.setPair()
   // =================================================================
-  console.log("=== 步骤 6/14: AE.setPair() ===");
-  const setPairTx = await ae.setPair(deployed.pair);
-  await setPairTx.wait();
-  console.log("✓ AE 交易对已设置");
-  console.log();
+  if (done < 6) {
+    console.log("=== 步骤 6/13: AE.setPair() ===");
+    const tx = await ae.setPair(C.Pair);
+    await tx.wait();
+    state.completedStep = 6;
+    saveState(state);
+    console.log("✓ AE 交易对已设置");
+    console.log();
+  } else {
+    console.log("=== 步骤 6/13: AE.setPair() 已完成，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 7: 转移质押储备金
   // =================================================================
-  console.log("=== 步骤 7/14: 转移质押储备金 ===");
-  const transferReserveTx = await ae.transfer(deployed.staking, STAKING_RESERVE);
-  await transferReserveTx.wait();
-  console.log("✓ 已转移", hre.ethers.formatEther(STAKING_RESERVE), "AE → Staking 合约");
-  console.log("  Staking AE 余额:", hre.ethers.formatEther(await ae.balanceOf(deployed.staking)), "AE");
-  console.log();
+  if (done < 7) {
+    console.log("=== 步骤 7/13: 转移质押储备金 ===");
+    const tx = await ae.transfer(C.Staking, STAKING_RESERVE);
+    await tx.wait();
+    state.completedStep = 7;
+    saveState(state);
+    console.log("✓ 已转移", hre.ethers.formatEther(STAKING_RESERVE), "AE → Staking 合约");
+    console.log();
+  } else {
+    console.log("=== 步骤 7/13: 质押储备金已转移，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 8: 部署 LiquidityStaking 合约
   // =================================================================
-  console.log("=== 步骤 8/14: 部署 LiquidityStaking 合约 ===");
-  const LiquidityStaking = await hre.ethers.getContractFactory(
-    "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking"
-  );
-  const liquidityStaking = await LiquidityStaking.deploy(
-    USDX_ADDRESS,            // _usdt
-    deployed.ae,             // _olaContract
-    deployed.pair,           // _lpToken
-    deployed.staking,        // _staking
-    MARKETING_ADDRESS,       // _marketingAddress
-    deployer.address,        // _admin
-    ROUTER_ADDRESS           // _router
-  );
-  await liquidityStaking.waitForDeployment();
-  deployed.liquidityStaking = await liquidityStaking.getAddress();
-  console.log("✓ LiquidityStaking 已部署:", deployed.liquidityStaking);
-  console.log();
+  if (done < 8) {
+    console.log("=== 步骤 8/13: 部署 LiquidityStaking 合约 ===");
+    const LS = await hre.ethers.getContractFactory(
+      "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking"
+    );
+    const ls = await LS.deploy(
+      USDX_ADDRESS,            // _usdt
+      C.AE,                    // _olaContract
+      C.Pair,                  // _lpToken
+      C.Staking,               // _staking
+      MARKETING_ADDRESS,       // _marketingAddress
+      deployer.address,        // _admin
+      ROUTER_ADDRESS           // _router
+    );
+    await ls.waitForDeployment();
+    C.LiquidityStaking = await ls.getAddress();
+    state.completedStep = 8;
+    saveState(state);
+    console.log("✓ LiquidityStaking 已部署:", C.LiquidityStaking);
+    console.log();
+  } else {
+    console.log("=== 步骤 8/13: LiquidityStaking 已存在，跳过 ===", C.LiquidityStaking);
+    console.log();
+  }
 
   // =================================================================
-  // 步骤 9: 配置 LiquidityStaking
+  // 步骤 9: AE.setLiquidityStaking()
   // =================================================================
-  console.log("=== 步骤 9/14: AE.setLiquidityStaking() ===");
-  const setLiquidityStakingTx = await ae.setLiquidityStaking(deployed.liquidityStaking);
-  await setLiquidityStakingTx.wait();
-  console.log("✓ LiquidityStaking 已加入手续费白名单");
-  console.log();
+  if (done < 9) {
+    console.log("=== 步骤 9/13: AE.setLiquidityStaking() ===");
+    const tx = await ae.setLiquidityStaking(C.LiquidityStaking);
+    await tx.wait();
+    state.completedStep = 9;
+    saveState(state);
+    console.log("✓ LiquidityStaking 已加入手续费白名单");
+    console.log();
+  } else {
+    console.log("=== 步骤 9/13: setLiquidityStaking() 已完成，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 10: 部署 FundRelay 合约
   // =================================================================
-  console.log("=== 步骤 10/14: 部署 FundRelay 合约 ===");
-  const FundRelay = await hre.ethers.getContractFactory("contracts/AE/src/utils/FundRelay.sol:FundRelay");
-  const fundRelay = await FundRelay.deploy(
-    deployed.ae,             // AE 合约地址
-    USDX_ADDRESS,            // USDC 地址
-    deployer.address         // 紧急提取地址
-  );
-  await fundRelay.waitForDeployment();
-  deployed.fundRelay = await fundRelay.getAddress();
-  console.log("✓ FundRelay 已部署:", deployed.fundRelay);
-  console.log();
+  if (done < 10) {
+    console.log("=== 步骤 10/13: 部署 FundRelay 合约 ===");
+    const FR = await hre.ethers.getContractFactory("contracts/AE/src/utils/FundRelay.sol:FundRelay");
+    const fr = await FR.deploy(
+      C.AE,                    // AE 合约地址
+      USDX_ADDRESS,            // USDC 地址
+      deployer.address         // 紧急提取地址
+    );
+    await fr.waitForDeployment();
+    C.FundRelay = await fr.getAddress();
+    state.completedStep = 10;
+    saveState(state);
+    console.log("✓ FundRelay 已部署:", C.FundRelay);
+    console.log();
+  } else {
+    console.log("=== 步骤 10/13: FundRelay 已存在，跳过 ===", C.FundRelay);
+    console.log();
+  }
 
   // =================================================================
-  // 步骤 11: 配置 FundRelay
+  // 步骤 11: AE.setFundRelay()
   // =================================================================
-  console.log("=== 步骤 11/14: AE.setFundRelay() ===");
-  const setFundRelayTx = await ae.setFundRelay(deployed.fundRelay);
-  await setFundRelayTx.wait();
-  console.log("✓ FundRelay 已加入手续费白名单");
-  console.log();
+  if (done < 11) {
+    console.log("=== 步骤 11/13: AE.setFundRelay() ===");
+    const tx = await ae.setFundRelay(C.FundRelay);
+    await tx.wait();
+    state.completedStep = 11;
+    saveState(state);
+    console.log("✓ FundRelay 已加入手续费白名单");
+    console.log();
+  } else {
+    console.log("=== 步骤 11/13: setFundRelay() 已完成，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 12: 转移节点奖励
   // =================================================================
-  console.log("=== 步骤 12/14: 转移节点奖励 ===");
-  const transferNodeTx = await ae.transfer(NODE_REWARD_ADDRESS, NODE_REWARD_ALLOCATION);
-  await transferNodeTx.wait();
-  console.log("✓ 已转移", hre.ethers.formatEther(NODE_REWARD_ALLOCATION), "AE → 节点奖励地址");
-  console.log("  地址:", NODE_REWARD_ADDRESS);
-  console.log();
+  if (done < 12) {
+    console.log("=== 步骤 12/13: 转移节点奖励 ===");
+    const tx = await ae.transfer(NODE_REWARD_ADDRESS, NODE_REWARD_ALLOCATION);
+    await tx.wait();
+    state.completedStep = 12;
+    saveState(state);
+    console.log("✓ 已转移", hre.ethers.formatEther(NODE_REWARD_ALLOCATION), "AE → 节点奖励地址");
+    console.log("  地址:", NODE_REWARD_ADDRESS);
+    console.log();
+  } else {
+    console.log("=== 步骤 12/13: 节点奖励已转移，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
   // 步骤 13: 转移跨链储备
   // =================================================================
-  console.log("=== 步骤 13/14: 转移跨链储备 ===");
-  const transferCrossChainTx = await ae.transfer(CROSS_CHAIN_RESERVE_ADDRESS, CROSS_CHAIN_RESERVE_ALLOCATION);
-  await transferCrossChainTx.wait();
-  console.log("✓ 已转移", hre.ethers.formatEther(CROSS_CHAIN_RESERVE_ALLOCATION), "AE → 跨链储备地址");
-  console.log("  地址:", CROSS_CHAIN_RESERVE_ADDRESS);
-  console.log();
+  if (done < 13) {
+    console.log("=== 步骤 13/13: 转移跨链储备 ===");
+    const tx = await ae.transfer(CROSS_CHAIN_RESERVE_ADDRESS, CROSS_CHAIN_RESERVE_ALLOCATION);
+    await tx.wait();
+    state.completedStep = 13;
+    saveState(state);
+    console.log("✓ 已转移", hre.ethers.formatEther(CROSS_CHAIN_RESERVE_ALLOCATION), "AE → 跨链储备地址");
+    console.log("  地址:", CROSS_CHAIN_RESERVE_ADDRESS);
+    console.log();
+  } else {
+    console.log("=== 步骤 13/13: 跨链储备已转移，跳过 ===");
+    console.log();
+  }
 
   // =================================================================
-  // 步骤 14: 验证部署 & 保存结果
+  // 验证部署结果 & 保存最终状态
   // =================================================================
-  console.log("=== 步骤 14/14: 验证部署结果 ===\n");
+  console.log("=== 部署结果 ===\n");
 
   const deployerAEBalance = await ae.balanceOf(deployer.address);
-  const stakingAEBalance = await ae.balanceOf(deployed.staking);
+  const stakingAEBalance = await ae.balanceOf(C.Staking);
   const nodeRewardAEBalance = await ae.balanceOf(NODE_REWARD_ADDRESS);
   const crossChainReserveAEBalance = await ae.balanceOf(CROSS_CHAIN_RESERVE_ADDRESS);
 
@@ -341,123 +466,115 @@ async function main() {
   console.log(`║  跨链储备:              ${fmt(crossChainReserveAEBalance).padEnd(20)} AE  (${pct(crossChainReserveAEBalance)}%)`.padEnd(59) + "║");
   console.log("╚══════════════════════════════════════════════════════════╝\n");
 
-  // 保存部署信息
-  const deploymentInfo = {
-    network: "bsc",
-    chainId: 56,
-    timestamp: new Date().toISOString(),
-    deployer: deployer.address,
-    contracts: {
-      AE: deployed.ae,
-      Staking: deployed.staking,
-      LiquidityStaking: deployed.liquidityStaking,
-      FundRelay: deployed.fundRelay,
-      "AE/USDC Pair": deployed.pair,
-    },
-    configAddresses: {
-      marketingAddress: MARKETING_ADDRESS,
-      rootAddress: ROOT_ADDRESS,
-      feeRecipient: FEE_RECIPIENT,
-      buyTaxNodeRewardAddress: BUY_TAX_NODE_REWARD_ADDRESS,
-      buyTaxCommunityRewardAddress: BUY_TAX_COMMUNITY_REWARD_ADDRESS,
-      marketingFundAddress: MARKETING_FUND_ADDRESS,
-      weeklyTop15RewardAddress: WEEKLY_TOP15_REWARD_ADDRESS,
-      educationFundAddress: EDUCATION_FUND_ADDRESS,
-      nodeRewardAllocationAddress: NODE_REWARD_ADDRESS,
-      crossChainReserveAddress: CROSS_CHAIN_RESERVE_ADDRESS,
-    },
-    balances: {
-      deployer: hre.ethers.formatEther(deployerAEBalance),
-      staking: hre.ethers.formatEther(stakingAEBalance),
-      nodeReward: hre.ethers.formatEther(nodeRewardAEBalance),
-      crossChainReserve: hre.ethers.formatEther(crossChainReserveAEBalance),
-    },
+  // 更新最终状态
+  state.network = "bsc";
+  state.chainId = 56;
+  state.deployer = deployer.address;
+  state.pancakeSwap = { router: ROUTER_ADDRESS, factory: FACTORY_ADDRESS };
+  state.configAddresses = {
+    marketingAddress: MARKETING_ADDRESS,
+    rootAddress: ROOT_ADDRESS,
+    feeRecipient: FEE_RECIPIENT,
+    buyTaxNodeRewardAddress: BUY_TAX_NODE_REWARD_ADDRESS,
+    buyTaxCommunityRewardAddress: BUY_TAX_COMMUNITY_REWARD_ADDRESS,
+    marketingFundAddress: MARKETING_FUND_ADDRESS,
+    weeklyTop15RewardAddress: WEEKLY_TOP15_REWARD_ADDRESS,
+    educationFundAddress: EDUCATION_FUND_ADDRESS,
+    nodeRewardAllocationAddress: NODE_REWARD_ADDRESS,
+    crossChainReserveAddress: CROSS_CHAIN_RESERVE_ADDRESS,
   };
-
-  const outputPath = path.join(__dirname, "..", "ae-mainnet-deployment.json");
-  fs.writeFileSync(outputPath, JSON.stringify(deploymentInfo, null, 2));
-  console.log("✓ 部署信息已保存至:", outputPath);
+  state.balances = {
+    deployer: hre.ethers.formatEther(deployerAEBalance),
+    staking: hre.ethers.formatEther(stakingAEBalance),
+    nodeReward: hre.ethers.formatEther(nodeRewardAEBalance),
+    crossChainReserve: hre.ethers.formatEther(crossChainReserveAEBalance),
+  };
+  saveState(state);
+  console.log("✓ 部署信息已保存至:", STATE_PATH);
   console.log();
 
   // =================================================================
-  // 合约开源验证 (BSCScan)
+  // BSCScan 合约验证
   // =================================================================
-  console.log("╔══════════════════════════════════════════════════════════╗");
-  console.log("║                BSCScan 合约验证                          ║");
-  console.log("╚══════════════════════════════════════════════════════════╝\n");
+  if (done < 14) {
+    console.log("╔══════════════════════════════════════════════════════════╗");
+    console.log("║                BSCScan 合约验证                          ║");
+    console.log("╚══════════════════════════════════════════════════════════╝\n");
 
-  if (!process.env.BSCSCAN_API_KEY) {
-    console.log("⚠️  未配置 BSCSCAN_API_KEY，跳过自动验证。");
-    console.log("   请在 .env 中设置 BSCSCAN_API_KEY 后手动验证。\n");
+    if (!process.env.BSCSCAN_API_KEY) {
+      console.log("⚠️  未配置 BSCSCAN_API_KEY，跳过自动验证。");
+      console.log("   请在 .env 中设置 BSCSCAN_API_KEY 后手动验证。\n");
+    } else {
+      console.log("等待区块确认后开始验证...\n");
+
+      const net = "bsc";
+
+      verifyContract(
+        "Staking",
+        C.Staking,
+        [USDX_ADDRESS, ROUTER_ADDRESS, ROOT_ADDRESS, FEE_RECIPIENT, EDUCATION_FUND_ADDRESS],
+        "contracts/AE-Staking/src/mainnet/Staking.sol:Staking", net
+      );
+
+      verifyContract(
+        "AE",
+        C.AE,
+        [
+          USDX_ADDRESS,
+          ROUTER_ADDRESS,
+          C.Staking,
+          MARKETING_ADDRESS,
+          BUY_TAX_NODE_REWARD_ADDRESS,
+          BUY_TAX_COMMUNITY_REWARD_ADDRESS,
+          MARKETING_FUND_ADDRESS,
+          WEEKLY_TOP15_REWARD_ADDRESS,
+        ],
+        "contracts/AE/src/mainnet/AE.sol:AE", net
+      );
+
+      verifyContract(
+        "LiquidityStaking",
+        C.LiquidityStaking,
+        [
+          USDX_ADDRESS,
+          C.AE,
+          C.Pair,
+          C.Staking,
+          MARKETING_ADDRESS,
+          deployer.address,
+          ROUTER_ADDRESS,
+        ],
+        "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking", net
+      );
+
+      verifyContract(
+        "FundRelay",
+        C.FundRelay,
+        [C.AE, USDX_ADDRESS, deployer.address],
+        "contracts/AE/src/utils/FundRelay.sol:FundRelay", net
+      );
+
+      state.completedStep = 14;
+      saveState(state);
+      console.log();
+    }
   } else {
-    // 等待一些区块确认，BSCScan 需要时间索引合约
-    console.log("等待区块确认后开始验证...\n");
-
-    // 验证 Staking
-    await verifyContract(
-      "Staking",
-      deployed.staking,
-      [USDX_ADDRESS, ROUTER_ADDRESS, ROOT_ADDRESS, FEE_RECIPIENT, EDUCATION_FUND_ADDRESS],
-      "contracts/AE-Staking/src/mainnet/Staking.sol:Staking"
-    );
-
-    // 验证 AE
-    await verifyContract(
-      "AE",
-      deployed.ae,
-      [
-        USDX_ADDRESS,
-        ROUTER_ADDRESS,
-        deployed.staking,
-        MARKETING_ADDRESS,
-        BUY_TAX_NODE_REWARD_ADDRESS,
-        BUY_TAX_COMMUNITY_REWARD_ADDRESS,
-        MARKETING_FUND_ADDRESS,
-        WEEKLY_TOP15_REWARD_ADDRESS,
-      ],
-      "contracts/AE/src/mainnet/AE.sol:AE"
-    );
-
-    // 验证 LiquidityStaking
-    await verifyContract(
-      "LiquidityStaking",
-      deployed.liquidityStaking,
-      [
-        USDX_ADDRESS,
-        deployed.ae,
-        deployed.pair,
-        deployed.staking,
-        MARKETING_ADDRESS,
-        deployer.address,
-        ROUTER_ADDRESS,
-      ],
-      "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking"
-    );
-
-    // 验证 FundRelay
-    await verifyContract(
-      "FundRelay",
-      deployed.fundRelay,
-      [deployed.ae, USDX_ADDRESS, deployer.address],
-      "contracts/AE/src/utils/FundRelay.sol:FundRelay"
-    );
-
-    console.log();
+    console.log("=== BSCScan 验证已完成，跳过 ===\n");
   }
 
   // =================================================================
-  // 最终输出
+  // 完成
   // =================================================================
   console.log("╔══════════════════════════════════════════════════════════╗");
   console.log("║              AE 主网部署完成!                            ║");
   console.log("╠══════════════════════════════════════════════════════════╣");
   console.log("║                                                          ║");
   console.log("║  已部署的合约:                                           ║");
-  console.log(`║    AE 代币:           ${deployed.ae}  ║`);
-  console.log(`║    Staking:           ${deployed.staking}  ║`);
-  console.log(`║    LiquidityStaking:  ${deployed.liquidityStaking}  ║`);
-  console.log(`║    FundRelay:         ${deployed.fundRelay}  ║`);
-  console.log(`║    AE/USDC Pair:      ${deployed.pair}  ║`);
+  console.log(`║    AE 代币:           ${C.AE}  ║`);
+  console.log(`║    Staking:           ${C.Staking}  ║`);
+  console.log(`║    LiquidityStaking:  ${C.LiquidityStaking}  ║`);
+  console.log(`║    FundRelay:         ${C.FundRelay}  ║`);
+  console.log(`║    AE/USDC Pair:      ${C.Pair}  ║`);
   console.log("║                                                          ║");
   console.log("╠══════════════════════════════════════════════════════════╣");
   console.log("║  接下来需要手动完成:                                      ║");
@@ -474,6 +591,7 @@ async function main() {
   console.log("║     - 在 BSCScan 确认合约已开源                          ║");
   console.log("║     - 测试买入/卖出交易                                   ║");
   console.log("║                                                          ║");
+  console.log("║  如需全新部署，删除 ae-mainnet-deployment.json 即可      ║");
   console.log("╚══════════════════════════════════════════════════════════╝\n");
 }
 

@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 // =====================================================================
 // AE 测试网部署脚本 (BSC Testnet / Chapel)
@@ -44,23 +45,26 @@ function saveState(state) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
-// BSCScan 合约验证
-async function verifyContract(name, address, constructorArgs, contractPath) {
+// BSCScan 合约验证 (通过子进程调用 npx hardhat verify)
+function verifyContract(name, address, constructorArgs, contractPath, networkName) {
   console.log(`  验证 ${name} (${address})...`);
   try {
-    await hre.run("verify:verify", {
-      address: address,
-      constructorArguments: constructorArgs,
-      contract: contractPath,
-    });
-    console.log(`  ✓ ${name} 验证成功`);
+    const args = constructorArgs.map(a => `"${a}"`).join(" ");
+    const cmd = `npx hardhat verify --network ${networkName} --contract "${contractPath}" ${address} ${args}`;
+    const output = execSync(cmd, { encoding: "utf8", timeout: 120000 });
+    if (output.includes("Already Verified") || output.includes("already verified")) {
+      console.log(`  ✓ ${name} 已经验证过了`);
+    } else {
+      console.log(`  ✓ ${name} 验证成功`);
+    }
     return true;
   } catch (error) {
-    if (error.message.includes("Already Verified") || error.message.includes("already verified")) {
+    const stderr = error.stderr || error.stdout || error.message || "";
+    if (stderr.includes("Already Verified") || stderr.includes("already verified")) {
       console.log(`  ✓ ${name} 已经验证过了`);
       return true;
     }
-    console.error(`  ✗ ${name} 验证失败: ${error.message}`);
+    console.error(`  ✗ ${name} 验证失败: ${stderr.split("\n").slice(0, 3).join(" ")}`);
     return false;
   }
 }
@@ -84,7 +88,7 @@ async function main() {
   console.log("部署者地址:", deployer.address);
   console.log("tBNB 余额:", hre.ethers.formatEther(deployerBalance), "tBNB");
 
-  if (deployerBalance < hre.ethers.parseEther("0.02")) {
+  if (deployerBalance < hre.ethers.parseEther("0.002")) {
     console.error("⚠️  tBNB 余额不足，请从水龙头获取测试币");
     console.error("   https://www.bnbchain.org/en/testnet-faucet");
     process.exit(1);
@@ -427,29 +431,31 @@ async function main() {
 
       const mockUsdcSupply = hre.ethers.parseEther("1000000");
 
-      await verifyContract("MockUSDC", C.MockUSDC,
+      const net = "bscTestnet";
+
+      verifyContract("MockUSDC", C.MockUSDC,
         ["Mock USDC", "USDC", mockUsdcSupply.toString()],
-        "contracts/test/MockERC20.sol:MockERC20"
+        "contracts/test/MockERC20.sol:MockERC20", net
       );
 
-      await verifyContract("Staking", C.Staking,
+      verifyContract("Staking", C.Staking,
         [USDX_ADDRESS, ROUTER_ADDRESS, ALL_ADDR, ALL_ADDR, ALL_ADDR],
-        "contracts/AE-Staking/src/mainnet/Staking.sol:Staking"
+        "contracts/AE-Staking/src/mainnet/Staking.sol:Staking", net
       );
 
-      await verifyContract("AE", C.AE,
+      verifyContract("AE", C.AE,
         [USDX_ADDRESS, ROUTER_ADDRESS, C.Staking, ALL_ADDR, ALL_ADDR, ALL_ADDR, ALL_ADDR, ALL_ADDR],
-        "contracts/AE/src/mainnet/AE.sol:AE"
+        "contracts/AE/src/mainnet/AE.sol:AE", net
       );
 
-      await verifyContract("LiquidityStaking", C.LiquidityStaking,
+      verifyContract("LiquidityStaking", C.LiquidityStaking,
         [USDX_ADDRESS, C.AE, C.Pair, C.Staking, ALL_ADDR, deployer.address, ROUTER_ADDRESS],
-        "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking"
+        "contracts/LiquidityStaking/src/mainnet/LiquidityStaking.sol:LiquidityStaking", net
       );
 
-      await verifyContract("FundRelay", C.FundRelay,
+      verifyContract("FundRelay", C.FundRelay,
         [C.AE, USDX_ADDRESS, deployer.address],
-        "contracts/AE/src/utils/FundRelay.sol:FundRelay"
+        "contracts/AE/src/utils/FundRelay.sol:FundRelay", net
       );
 
       state.completedStep = 16;
