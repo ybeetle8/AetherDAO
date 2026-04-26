@@ -87,10 +87,19 @@ module.exports = {
       timeout: 120000, // 2分钟超时
     },
     bscTestnet: {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-
-
+      url: process.env.BSC_TESTNET_RPC_URL || "https://data-seed-prebsc-1-s1.binance.org:8545/",
       chainId: 97,
+      accounts: process.env.BSC_PRIVATE_KEY
+        ? [`0x${process.env.BSC_PRIVATE_KEY}`]
+        : [],
+      gasPrice: 5000000000, // 5 Gwei
+      timeout: 120000,
+    }
+  },
+  etherscan: {
+    apiKey: {
+      bsc: process.env.BSCSCAN_API_KEY || "",
+      bscTestnet: process.env.BSCSCAN_API_KEY || ""
     }
   }
 };

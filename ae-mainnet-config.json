@@ -1,0 +1,51 @@
+{
+  "network": "bsc",
+  "addresses": {
+    "usdx": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    "pancakeRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+    "pancakeFactory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+
+    "_comment_marketing": "【部署前替换】营销地址 - AE合约 constructor (immutable) + LiquidityStaking constructor",
+    "marketingAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_root": "【部署前替换】推荐系统根节点 - Staking constructor (immutable, 不可修改)",
+    "rootAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_fee": "【部署前替换】质押手续费接收地址 - Staking constructor (immutable)",
+    "feeRecipient": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_buyTaxNode": "【部署前替换】买入税节点奖励地址 - AE constructor (immutable)",
+    "buyTaxNodeRewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_buyTaxCommunity": "【部署前替换】买入税社区奖励地址 - AE constructor (immutable)",
+    "buyTaxCommunityRewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_marketingFund": "【部署前替换】营销基金地址 - AE constructor (immutable)",
+    "marketingFundAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_weekly": "【部署前替换】每周Top15奖励地址 - AE constructor (immutable)",
+    "weeklyTop15RewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_education": "【部署前替换】教育基金地址 - Staking constructor (immutable)",
+    "educationFundAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_nodeReward": "【部署前替换】节点奖励分配地址 - 接收 18,740,000 AE",
+    "nodeRewardAllocationAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
+
+    "_comment_crossChain": "【部署前替换】跨链储备地址 - 接收 1,260,000 AE",
+    "crossChainReserveAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39"
+  },
+  "tokenomics": {
+    "totalSupply": "100000000",
+    "stakingReserve": "20000000",
+    "initialLiquidity": {
+      "ae": "60000000",
+      "usdx": "60000"
+    },
+    "nodeRewardAllocation": "18740000",
+    "crossChainReserveAllocation": "1260000"
+  },
+  "deployment": {
+    "burnLP": true
+  }
+}
