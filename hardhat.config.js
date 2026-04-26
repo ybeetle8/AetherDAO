@@ -78,7 +78,7 @@ module.exports = {
       }
     },
     bsc: {
-      url: process.env.BSC_RPC_URL || "https://bsc.rpc.pinax.network/v1/0ec07b264c688cae48efc650c47976f1c02bb0ae73288f12",
+      url: process.env.BSC_RPC_URL || "https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/",
       chainId: 56,
       accounts: process.env.BSC_PRIVATE_KEY
         ? [`0x${process.env.BSC_PRIVATE_KEY}`]

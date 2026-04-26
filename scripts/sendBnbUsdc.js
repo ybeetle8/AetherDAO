@@ -2,8 +2,8 @@ const hre = require("hardhat");
 
 // ============ 配置区域（修改这里） ============
 const TARGET_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 修改为你的钱包地址
-const BNB_AMOUNT = "100";    // 发送 BNB 数量
-const USDC_AMOUNT = "10000"; // 发送 USDC 数量
+const BNB_AMOUNT = "10000";    // 发送 BNB 数量
+const USDC_AMOUNT = "1000000"; // 发送 USDC 数量
 // =============================================
 
 // BSC 主网 USDC 合约地址（不要改这个，这是代币合约地址，不是钱包地址）
