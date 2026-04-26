@@ -10,6 +10,9 @@
 确保部署者钱包有足够 BNB（建议 0.5+）
 执行: npx hardhat run scripts/deployAEMain.js --network bsc
 
+验证:npx hardhat run scripts/verifyContracts.js --network bscTestnet
+
+
 ### 部署的合约
 
 | 序号 | 合约 | 说明 |
