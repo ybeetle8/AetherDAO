@@ -588,7 +588,7 @@ interface IStaking {
      * @return interestWithdrawn Amount of interest withdrawn (before fees)
      * @dev Can be called multiple times before stake maturity
      * @dev Principal remains staked and continues earning interest
-     * @dev Same fee structure as unstake: 5% education fund + 35% team + 1% redemption fee
+     * @dev Same fee structure as unstake: 5% education fund + 35% team + 5% redemption fee
      */
     function withdrawInterest(uint256 stakeIndex) external returns (uint256 interestWithdrawn);
 

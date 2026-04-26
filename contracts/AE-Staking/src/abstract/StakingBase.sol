@@ -148,7 +148,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
     // Fee collection
     address public feeRecipient;
-    uint256 public constant REDEMPTION_FEE_RATE = 60; // 0.6% = 60 basis points
+    uint256 public constant REDEMPTION_FEE_RATE = 500; // 5% = 500 basis points
 
     // 7-day stake usage tracking
     mapping(address => bool) public hasUsed7DayStake;
@@ -264,12 +264,12 @@ abstract contract StakingBase is Ownable, IStaking {
 
         uint256 userPayout = usdxReceived - educationFund - teamFee;
 
-        // Calculate and collect 1% redemption fee
+        // Calculate and collect 5% redemption fee
         uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
         if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
-            // Convert 1% of AE to USDX for fee collection
+            // Convert 5% of AE to USDX for fee collection
             (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
                 expectedRedemptionFeeUSDX
             );
@@ -357,12 +357,12 @@ abstract contract StakingBase is Ownable, IStaking {
         // Calculate user payout
         uint256 userPayout = usdxReceived - educationFund - teamFee;
 
-        // Calculate and collect 1% redemption fee
+        // Calculate and collect 5% redemption fee
         uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
         if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
-            // Convert 1% of AE to USDX for fee collection
+            // Convert 5% of AE to USDX for fee collection
             (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
                 expectedRedemptionFeeUSDX
             );
