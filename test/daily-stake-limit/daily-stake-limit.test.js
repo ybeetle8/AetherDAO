@@ -25,6 +25,16 @@ const {
   revertSnapshot,
 } = require("../helpers/time");
 
+/**
+ * 为地址设置 BNB 余额 (用于支付 gas)
+ */
+async function setBNBBalance(address) {
+  await hre.network.provider.send("hardhat_setBalance", [
+    address,
+    "0x56BC75E2D63100000", // 100 BNB
+  ]);
+}
+
 async function safeBindReferral(staking, user, referrer) {
   const isBound = await staking.isBindReferral(user.address);
   if (!isBound) {
@@ -35,6 +45,42 @@ async function safeBindReferral(staking, user, referrer) {
 function errorContains(error, keyword) {
   const msg = error.message || String(error);
   return msg.toLowerCase().includes(keyword.toLowerCase());
+}
+
+/**
+ * 辅助函数: 让一个用户多次质押, 消耗每日额度
+ * 每次质押之间等待 120 秒以满足网络流入检查
+ * 动态获取 maxStakeAmount 以适配池子大小
+ * @returns 实际消耗的总额度
+ */
+async function drainQuotaWithUser(staking, user, maxStakes, stakeIndex) {
+  const parseEther = hre.ethers.parseEther;
+  const MIN_STAKE = parseEther("100");
+  let staked = 0n;
+  for (let i = 0; i < maxStakes; i++) {
+    await advanceTimeSeconds(120);
+    try {
+      // 动态获取当前允许的最大单笔质押额
+      const maxAmount = await staking.getMaxStakeAmount();
+      if (maxAmount < MIN_STAKE) break; // 不够最小质押额
+      // 同时不能超过每日剩余额度
+      const remaining = await staking.getDailyStakeRemaining();
+      if (remaining < MIN_STAKE) break;
+      // 取 maxAmount 和 remaining 的较小值
+      let amount = maxAmount < remaining ? maxAmount : remaining;
+      // 也不能超过用户剩余容量
+      const userCap = await staking.getRemainingStakeCapacity(user.address);
+      if (userCap < MIN_STAKE) break;
+      if (amount > userCap) amount = userCap;
+      if (amount < MIN_STAKE) break;
+
+      await staking.connect(user).stake(amount, stakeIndex);
+      staked += amount;
+    } catch {
+      break; // 达到用户上限或每日限额
+    }
+  }
+  return staked;
 }
 
 async function main() {
@@ -51,17 +97,17 @@ async function main() {
   const parseEther = hre.ethers.parseEther;
   const formatEther = hre.ethers.formatEther;
 
-  // 使用靠后的账户避免与其他模块冲突
-  const userA = accounts[30];
-  const userB = accounts[31];
-  const userC = accounts[32];
-  const userD = accounts[33];
-  const userE = accounts[34];
+  // Hardhat 默认 20 个账户, deployer=accounts[-1], accounts[0..18]
+  // 分配: DL-1~3 用 accounts[0..2], DL-4 用 accounts[3..8], DL-5~9 用 accounts[9..13]
+  const userA = accounts[0];
+  const userB = accounts[1];
+  const userC = accounts[2];
 
   const runner = new TestRunner("每日全网质押限额功能");
 
-  // 准备: 设置余额和授权
-  for (const u of [userA, userB, userC, userD, userE]) {
+  // 准备: 为 DL-1~3 的用户设置余额和授权
+  for (const u of [userA, userB, userC]) {
+    await setBNBBalance(u.address);
     await setUSDXBalance(u.address, parseEther("100000"));
     await approveUSDX(usdx, u, stakingAddress, parseEther("100000"));
     await safeBindReferral(staking, u, rootAddress);
@@ -72,7 +118,6 @@ async function main() {
   // DAILY_NETWORK_STAKE_LIMIT = 50,000 USDX
   // =========================================================================
   await runner.run("DL-1", "限额常量验证: DAILY_NETWORK_STAKE_LIMIT = 50,000 USDX", async () => {
-    // 初始状态: 还没人质押过, 剩余额度应为 50,000
     const remaining = await staking.getDailyStakeRemaining();
     assertEq(remaining, parseEther("50000"), "初始剩余额度应为 50,000 USDX");
     console.log(`     每日全网限额: ${formatEther(remaining)} USDX`);
@@ -151,84 +196,75 @@ async function main() {
   // =========================================================================
   // DL-4: 超出限额被拒绝
   // 累计质押接近 50,000 后，超出部分 revert
+  // 策略: 用 accounts[3..8] 共 6 个用户, 每用户最多质押 10,000 USDX
+  // 6 * 10,000 = 60,000 > 50,000, 足够触发限额
   // =========================================================================
   await runner.run("DL-4", "超出限额被拒绝: 累计超过 50,000 USDX 时 revert", async () => {
-    // 当前已使用额度
     const usedSoFar = await staking.getDailyStakeUsed();
-    const remaining = await staking.getDailyStakeRemaining();
     console.log(`     当前已使用: ${formatEther(usedSoFar)} USDX`);
-    console.log(`     当前剩余: ${formatEther(remaining)} USDX`);
 
-    // 多次质押消耗额度直到接近上限
-    // 每个用户上限 10,000 USDX, 所以需要多个用户配合
-    // 使用更多用户来消耗额度
-    const bulkUsers = [];
-    for (let i = 35; i < 85; i++) {
-      bulkUsers.push(accounts[i]);
-    }
-
-    // 为批量用户设置余额、授权、绑定推荐人
-    for (const u of bulkUsers) {
+    // 准备 6 个用户用于消耗额度
+    const drainUsers = [accounts[3], accounts[4], accounts[5], accounts[6], accounts[7], accounts[8]];
+    for (const u of drainUsers) {
+      await setBNBBalance(u.address);
       await setUSDXBalance(u.address, parseEther("100000"));
       await approveUSDX(usdx, u, stakingAddress, parseEther("100000"));
       await safeBindReferral(staking, u, rootAddress);
     }
 
-    // 每次质押 1000 USDX (单笔最大限制)，尽可能消耗额度
-    let currentRemaining = remaining;
-    let userIdx = 0;
-
-    while (currentRemaining > parseEther("1000") && userIdx < bulkUsers.length) {
-      await advanceTimeSeconds(120);
-      try {
-        await staking.connect(bulkUsers[userIdx]).stake(parseEther("1000"), 1);
-        currentRemaining = await staking.getDailyStakeRemaining();
-        userIdx++;
-      } catch {
-        break;
-      }
+    // 每个用户循环质押 1000 USDX (最多 10 次 = 10,000 USDX/人), 直到额度耗尽
+    let totalDrained = 0n;
+    for (const u of drainUsers) {
+      const remaining = await staking.getDailyStakeRemaining();
+      if (remaining <= parseEther("100")) break; // 剩余不够最小质押额
+      const drained = await drainQuotaWithUser(staking, u, 10, 2);
+      totalDrained += drained;
+      console.log(`     用户 ${u.address.slice(0, 8)}... 质押: ${formatEther(drained)} USDX`);
     }
 
     const remainingNow = await staking.getDailyStakeRemaining();
     console.log(`     消耗后剩余额度: ${formatEther(remainingNow)} USDX`);
+    console.log(`     本轮共消耗: ${formatEther(totalDrained)} USDX`);
 
-    // 尝试一笔超过剩余额度的质押，应该失败
+    // 尝试超出限额的质押, 应失败
+    // 找一个还没达到用户上限的账户
+    const overUser = accounts[9];
+    await setBNBBalance(overUser.address);
+    await setUSDXBalance(overUser.address, parseEther("100000"));
+    await approveUSDX(usdx, overUser, stakingAddress, parseEther("100000"));
+    await safeBindReferral(staking, overUser, rootAddress);
+
+    // 如果剩余额度 < 1000, 尝试质押 1000 应触发每日限额错误
     if (remainingNow < parseEther("1000")) {
-      const overAmount = remainingNow + parseEther("1");
-      if (overAmount >= parseEther("100") && userIdx < bulkUsers.length) {
-        try {
-          await advanceTimeSeconds(120);
-          await staking.connect(bulkUsers[userIdx]).stake(overAmount, 1);
-          throw new Error("应该失败但成功了");
-        } catch (error) {
-          assert(
-            errorContains(error, "daily network stake limit") ||
-            errorContains(error, "Exceeds"),
-            `应包含限额错误信息, 实际: ${error.message}`
-          );
-          console.log(`     超额质押已被正确拒绝`);
-        }
-      } else {
-        // 剩余额度太少或不足以达到最小质押额, 用一个新用户直接质押大额
-        const bigUser = bulkUsers[userIdx < bulkUsers.length ? userIdx : bulkUsers.length - 1];
-        try {
-          await advanceTimeSeconds(120);
-          // 质押一笔比剩余额度大的金额
-          const testAmount = parseEther("1000");
-          await staking.connect(bigUser).stake(testAmount, 1);
-          throw new Error("应该失败但成功了");
-        } catch (error) {
-          assert(
-            errorContains(error, "daily network stake limit") ||
-            errorContains(error, "Exceeds") ||
-            errorContains(error, "应该失败但成功了"),
-            `应包含限额错误信息, 实际: ${error.message}`
-          );
-          if (errorContains(error, "应该失败但成功了")) {
-            throw error;
-          }
-          console.log(`     超额质押已被正确拒绝`);
-        }
+      try {
+        await advanceTimeSeconds(120);
+        await staking.connect(overUser).stake(parseEther("1000"), 2);
+        throw new Error("应该失败但成功了");
+      } catch (error) {
+        if (errorContains(error, "应该失败但成功了")) throw error;
+        assert(
+          errorContains(error, "daily network stake limit"),
+          `应包含 'daily network stake limit' 错误, 实际: ${error.message.slice(0, 200)}`
+        );
+        console.log(`     超额质押已被正确拒绝 ✓`);
+      }
+    } else {
+      // 剩余额度仍 >= 1000, 直接尝试一笔超过剩余额度的交易
+      // remainingNow + 1 可能不到 MIN_STAKE_AMOUNT, 所以用更大数值
+      const overAmount = remainingNow + parseEther("100");
+      try {
+        await advanceTimeSeconds(120);
+        await staking.connect(overUser).stake(overAmount, 2);
+        throw new Error("应该失败但成功了");
+      } catch (error) {
+        if (errorContains(error, "应该失败但成功了")) throw error;
+        // 可能被 daily limit 或 maxStakeAmount 拦截, 两者都说明限制生效
+        assert(
+          errorContains(error, "daily network stake limit") ||
+          errorContains(error, "ExceedsMaxStakeAmount"),
+          `应包含限额相关错误, 实际: ${error.message.slice(0, 200)}`
+        );
+        console.log(`     超额质押已被正确拒绝 ✓`);
       }
     }
   });
@@ -238,7 +274,6 @@ async function main() {
   // 用 evm_increaseTime 推进到下个周期，额度恢复为 50,000
   // =========================================================================
   await runner.run("DL-5", "周期刷新后额度恢复: 跨周期后额度恢复为 50,000", async () => {
-    // 当前额度已被大量消耗
     const usedBefore = await staking.getDailyStakeUsed();
     assert(usedBefore > 0n, "当前周期应有已使用额度");
     console.log(`     当前周期已使用: ${formatEther(usedBefore)} USDX`);
@@ -265,12 +300,13 @@ async function main() {
 
     // 验证新周期内可以再次质押
     await advanceTimeSeconds(120);
-    const newUser = accounts[86];
+    const newUser = accounts[10];
+    await setBNBBalance(newUser.address);
     await setUSDXBalance(newUser.address, parseEther("100000"));
     await approveUSDX(usdx, newUser, stakingAddress, parseEther("100000"));
     await safeBindReferral(staking, newUser, rootAddress);
 
-    const tx = await staking.connect(newUser).stake(parseEther("500"), 1);
+    const tx = await staking.connect(newUser).stake(parseEther("500"), 2);
     const receipt = await tx.wait();
     assert(receipt.status === 1, "新周期质押应成功");
 
@@ -301,12 +337,13 @@ async function main() {
 
     // 状态2: 质押 100 后
     await advanceTimeSeconds(120);
-    const stakeUser = accounts[87];
+    const stakeUser = accounts[11];
+    await setBNBBalance(stakeUser.address);
     await setUSDXBalance(stakeUser.address, parseEther("100000"));
     await approveUSDX(usdx, stakeUser, stakingAddress, parseEther("100000"));
     await safeBindReferral(staking, stakeUser, rootAddress);
 
-    await staking.connect(stakeUser).stake(parseEther("100"), 1);
+    await staking.connect(stakeUser).stake(parseEther("100"), 2);
     const remaining2 = await staking.getDailyStakeRemaining();
     assertEq(remaining2, parseEther("49900"), "质押 100 后应剩 49,900");
     console.log(`     质押 100 后: 剩余 ${formatEther(remaining2)} USDX`);
@@ -377,16 +414,18 @@ async function main() {
     const timeToAdvance = Number(nextReset) - currentTimestamp + 1;
     await advanceTimeSeconds(timeToAdvance);
 
-    const testUser = accounts[88];
+    const testUser = accounts[12];
+    await setBNBBalance(testUser.address);
     await setUSDXBalance(testUser.address, parseEther("100000"));
     await approveUSDX(usdx, testUser, stakingAddress, parseEther("100000"));
     await safeBindReferral(staking, testUser, rootAddress);
 
     // 测试1: 最小质押额仍生效 (< 100 USDX 应失败)
     try {
-      await staking.connect(testUser).stake(parseEther("50"), 1);
+      await staking.connect(testUser).stake(parseEther("50"), 2);
       throw new Error("低于最小质押额应失败");
     } catch (error) {
+      if (errorContains(error, "低于最小质押额应失败")) throw error;
       assert(
         errorContains(error, "BelowMinStakeAmount") ||
         errorContains(error, "min"),
@@ -397,7 +436,7 @@ async function main() {
 
     // 测试2: 正常质押可以通过所有检查
     await advanceTimeSeconds(120);
-    const tx = await staking.connect(testUser).stake(parseEther("100"), 1);
+    const tx = await staking.connect(testUser).stake(parseEther("100"), 2);
     const receipt = await tx.wait();
     assert(receipt.status === 1, "正常质押应通过所有检查");
     console.log(`     正常质押 100 USDX 通过所有检查`);
@@ -408,7 +447,6 @@ async function main() {
     console.log(`     每日限额正确减少至 ${formatEther(remaining)} USDX`);
 
     // 测试4: 用户累计上限仍独立生效
-    // MAX_USER_TOTAL_STAKE = 10,000 USDX
     const userRemaining = await staking.getRemainingStakeCapacity(testUser.address);
     assert(userRemaining > 0n, "用户剩余容量应大于 0");
     console.log(`     用户剩余质押容量: ${formatEther(userRemaining)} USDX (与每日限额独立)`);
