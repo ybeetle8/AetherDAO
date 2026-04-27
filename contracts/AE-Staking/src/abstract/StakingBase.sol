@@ -98,6 +98,7 @@ abstract contract StakingBase is Ownable, IStaking {
     uint256 internal constant AE_BUY_LIQUIDITY_FEE_BPS = 250;
     uint256 internal constant AE_TOTAL_BUY_FEE_BPS =
         AE_BUY_BURN_FEE_BPS + AE_BUY_LIQUIDITY_FEE_BPS;
+    uint256 internal constant ADD_LIQUIDITY_SLIPPAGE_TOLERANCE = 500; // 5% = 500 bps
 
     uint256 internal constant REWARD_WITHHOLD_RATE = 40;
 
@@ -264,21 +265,22 @@ abstract contract StakingBase is Ownable, IStaking {
 
         uint256 userPayout = usdxReceived - educationFund - teamFee;
 
-        // Calculate and collect 5% redemption fee
+        // Calculate and collect 5% redemption fee from userPayout
         uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
         if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
-            // Convert 5% of AE to USDX for fee collection
-            (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
-                expectedRedemptionFeeUSDX
-            );
+            // Deduct redemption fee from userPayout
+            userPayout -= expectedRedemptionFeeUSDX;
+
+            // Transfer redemption fee to feeRecipient
+            IERC20(USDX).transfer(feeRecipient, expectedRedemptionFeeUSDX);
 
             // Emit fee collection event
             emit RedemptionFeeCollected(
                 msg.sender,
                 stakeIndex,
-                redemptionFeeAEUsed,
+                0,
                 expectedRedemptionFeeUSDX,
                 feeRecipient,
                 block.timestamp
@@ -357,21 +359,22 @@ abstract contract StakingBase is Ownable, IStaking {
         // Calculate user payout
         uint256 userPayout = usdxReceived - educationFund - teamFee;
 
-        // Calculate and collect 5% redemption fee
+        // Calculate and collect 5% redemption fee from userPayout
         uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
         if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {
-            // Convert 5% of AE to USDX for fee collection
-            (, uint256 redemptionFeeAEUsed) = _swapAEForReward(
-                expectedRedemptionFeeUSDX
-            );
+            // Deduct redemption fee from userPayout
+            userPayout -= expectedRedemptionFeeUSDX;
+
+            // Transfer redemption fee to feeRecipient
+            IERC20(USDX).transfer(feeRecipient, expectedRedemptionFeeUSDX);
 
             // Emit fee collection event
             emit RedemptionFeeCollected(
                 user,
                 stakeIndex,
-                redemptionFeeAEUsed,
+                0,
                 expectedRedemptionFeeUSDX,
                 feeRecipient,
                 block.timestamp
@@ -1365,13 +1368,22 @@ abstract contract StakingBase is Ownable, IStaking {
         uint256 aeTokensReceived = aeBalanceAfter - aeBalanceBefore;
 
         uint256 remainingUsdx = usdxAmount - usdxToSwap;
+
+        // H-01 fix: calculate amountMin based on actual swap results to prevent sandwich attacks
+        uint256 amountUsdxMin = (remainingUsdx *
+            (BASIS_POINTS_DENOMINATOR - ADD_LIQUIDITY_SLIPPAGE_TOLERANCE)) /
+            BASIS_POINTS_DENOMINATOR;
+        uint256 amountAeMin = (aeTokensReceived *
+            (BASIS_POINTS_DENOMINATOR - ADD_LIQUIDITY_SLIPPAGE_TOLERANCE)) /
+            BASIS_POINTS_DENOMINATOR;
+
         ROUTER.addLiquidity(
             address(USDX),
             address(AE),
             remainingUsdx,
             aeTokensReceived,
-            0,
-            0,
+            amountUsdxMin,
+            amountAeMin,
             address(0),
             block.timestamp
         );
