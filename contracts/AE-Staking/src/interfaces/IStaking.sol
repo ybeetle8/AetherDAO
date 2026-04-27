@@ -555,6 +555,28 @@ interface IStaking {
     function batchReset7DayStakeUsage(address[] calldata users) external;
 
     // =========================================================================
+    // DAILY NETWORK STAKE LIMIT FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Gets the remaining daily network stake quota for the current period
+     * @return remaining Remaining quota in USDX (18 decimals)
+     */
+    function getDailyStakeRemaining() external view returns (uint256 remaining);
+
+    /**
+     * @notice Gets the amount already staked in the current daily period
+     * @return used Amount already used in USDX (18 decimals)
+     */
+    function getDailyStakeUsed() external view returns (uint256 used);
+
+    /**
+     * @notice Gets the timestamp of the next daily limit reset
+     * @return nextReset Unix timestamp of the next reset
+     */
+    function getNextDailyResetTime() external view returns (uint256 nextReset);
+
+    // =========================================================================
     // EARLY INTEREST WITHDRAWAL FUNCTIONS
     // =========================================================================
 

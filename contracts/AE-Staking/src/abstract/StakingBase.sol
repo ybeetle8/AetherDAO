@@ -102,6 +102,13 @@ abstract contract StakingBase is Ownable, IStaking {
 
     uint256 internal constant REWARD_WITHHOLD_RATE = 40;
 
+    // Daily network stake limit: 50,000 USDX
+    uint256 internal constant DAILY_NETWORK_STAKE_LIMIT = 50_000 ether;
+    // Reset hour: UTC 06:00 (= Beijing time 14:00)
+    uint256 internal constant DAILY_RESET_HOUR_UTC = 6;
+    uint256 internal constant SECONDS_PER_DAY = 86400;
+    uint256 internal constant SECONDS_PER_HOUR = 3600;
+
     // =========================================================================
     // IMMUTABLE VARIABLES
     // =========================================================================
@@ -157,6 +164,10 @@ abstract contract StakingBase is Ownable, IStaking {
     // Early interest withdrawal tracking
     // Maps user address => stake index => total interest withdrawn
     mapping(address => mapping(uint256 => uint256)) public withdrawnInterest;
+
+    // Daily network stake limit tracking
+    uint256 public dailyStakedAmount;
+    uint256 public dailyPeriodStart;
 
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
@@ -230,6 +241,9 @@ abstract contract StakingBase is Ownable, IStaking {
 
     function stake(uint160 _amount, uint8 _stakeIndex) external onlyEOA {
         _validateStakeParameters(_amount, _stakeIndex);
+
+        // Check and update daily network stake limit
+        _checkAndUpdateDailyLimit(_amount);
 
         // Check 7-day stake usage limit
         if (_stakeIndex == 0) {
@@ -557,6 +571,35 @@ abstract contract StakingBase is Ownable, IStaking {
 
     function getMaxUserTotalStake() external pure returns (uint256 limit) {
         return MAX_USER_TOTAL_STAKE;
+    }
+
+    /// @notice Gets the remaining daily network stake quota for the current period
+    function getDailyStakeRemaining() external view returns (uint256 remaining) {
+        uint256 currentPeriodStart = _getCurrentPeriodStart();
+
+        if (dailyPeriodStart < currentPeriodStart) {
+            return DAILY_NETWORK_STAKE_LIMIT;
+        }
+
+        if (dailyStakedAmount >= DAILY_NETWORK_STAKE_LIMIT) {
+            return 0;
+        }
+        return DAILY_NETWORK_STAKE_LIMIT - dailyStakedAmount;
+    }
+
+    /// @notice Gets the amount already staked in the current daily period
+    function getDailyStakeUsed() external view returns (uint256 used) {
+        uint256 currentPeriodStart = _getCurrentPeriodStart();
+
+        if (dailyPeriodStart < currentPeriodStart) {
+            return 0;
+        }
+        return dailyStakedAmount;
+    }
+
+    /// @notice Gets the timestamp of the next daily limit reset
+    function getNextDailyResetTime() external view returns (uint256 nextReset) {
+        return _getCurrentPeriodStart() + SECONDS_PER_DAY;
     }
 
     function getStakePeriod(
@@ -1010,6 +1053,37 @@ abstract contract StakingBase is Ownable, IStaking {
     // =========================================================================
     // PRIVATE FUNCTIONS
     // =========================================================================
+
+    /// @notice Calculates the start timestamp of the current daily period (last UTC 06:00)
+    function _getCurrentPeriodStart() internal view returns (uint256) {
+        uint256 todayResetTime = (block.timestamp / SECONDS_PER_DAY) * SECONDS_PER_DAY
+                                 + DAILY_RESET_HOUR_UTC * SECONDS_PER_HOUR;
+
+        if (block.timestamp < todayResetTime) {
+            return todayResetTime - SECONDS_PER_DAY;
+        }
+        return todayResetTime;
+    }
+
+    /// @notice Checks and updates the daily network stake limit
+    function _checkAndUpdateDailyLimit(uint256 _amount) private {
+        uint256 currentPeriodStart = _getCurrentPeriodStart();
+
+        // If we've entered a new period, reset the counter
+        if (dailyPeriodStart < currentPeriodStart) {
+            dailyPeriodStart = currentPeriodStart;
+            dailyStakedAmount = 0;
+        }
+
+        // Check if the amount exceeds the daily limit
+        require(
+            dailyStakedAmount + _amount <= DAILY_NETWORK_STAKE_LIMIT,
+            "Exceeds daily network stake limit"
+        );
+
+        // Update the staked amount
+        dailyStakedAmount += _amount;
+    }
 
     function _mintStakeRecord(
         address sender,
