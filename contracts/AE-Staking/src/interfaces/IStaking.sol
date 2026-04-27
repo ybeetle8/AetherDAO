@@ -293,9 +293,9 @@ interface IStaking {
         uint256 totalTeamRewardPool,
         uint256 totalDistributed,
         uint256 marketingAmount,
-        address[7] tierRecipients,
-        uint256[7] tierAmounts,
-        uint8 activeTiers
+        address[9] tierRecipients,
+        uint256[9] tierAmounts,
+        uint16 activeTiers
     );
 
     /**
@@ -335,6 +335,22 @@ interface IStaking {
      * @param newTotalStakers New total staker count
      */
     event StakerCountChanged(address indexed user, bool isJoin, uint256 newTotalStakers);
+
+    // =========================================================================
+    // PER-USER CUMULATIVE REWARD EVENTS
+    // =========================================================================
+
+    /// @notice 用户质押收益累计值更新
+    /// @param user 用户地址
+    /// @param amount 本次到账金额
+    /// @param newTotal 更新后的累计总额
+    event UserStakingRewardUpdated(address indexed user, uint256 amount, uint256 newTotal);
+
+    /// @notice 用户社区收益累计值更新
+    /// @param user 用户地址
+    /// @param amount 本次到账金额
+    /// @param newTotal 更新后的累计总额
+    event UserCommunityRewardUpdated(address indexed user, uint256 amount, uint256 newTotal);
 
     // =========================================================================
     // CORE STAKING FUNCTIONS
@@ -711,5 +727,18 @@ interface IStaking {
         uint256 dividends,
         uint256 educationFund,
         uint256 stakerCount
+    );
+
+    // =========================================================================
+    // PER-USER CUMULATIVE REWARD FUNCTIONS
+    // =========================================================================
+
+    /// @notice 获取用户累计收益数据
+    /// @param user 用户地址
+    /// @return stakingReward 累计质押收益 (已领取)
+    /// @return communityReward 累计社区收益 (已领取)
+    function getUserRewardSummary(address user) external view returns (
+        uint256 stakingReward,
+        uint256 communityReward
     );
 }

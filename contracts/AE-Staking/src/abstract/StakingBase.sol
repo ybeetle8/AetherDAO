@@ -185,6 +185,16 @@ abstract contract StakingBase is Ownable, IStaking {
     // 用户是否为活跃质押者 (用于参与人数计数)
     mapping(address => bool) private _isActiveStaker;
 
+    // =========================================================================
+    // PER-USER CUMULATIVE REWARD TRACKING
+    // =========================================================================
+
+    /// @notice 用户累计质押收益 (unstake / withdrawInterest 的 userPayout 之和)
+    mapping(address => uint256) public totalClaimedStakingReward;
+
+    /// @notice 用户累计社区收益 (作为推荐人获得的团队奖励之和)
+    mapping(address => uint256) public totalClaimedCommunityReward;
+
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
         address indexed oldAddress,
@@ -336,6 +346,10 @@ abstract contract StakingBase is Ownable, IStaking {
             // 累计分红统计
             totalDividendsDistributed += userPayout;
             emit GlobalDividendUpdated(userPayout, totalDividendsDistributed);
+
+            // 累计用户质押收益
+            totalClaimedStakingReward[msg.sender] += userPayout;
+            emit UserStakingRewardUpdated(msg.sender, userPayout, totalClaimedStakingReward[msg.sender]);
         }
 
         AE.recycle(aeTokensUsed);
@@ -421,6 +435,10 @@ abstract contract StakingBase is Ownable, IStaking {
         // 累计分红统计
         totalDividendsDistributed += userPayout;
         emit GlobalDividendUpdated(userPayout, totalDividendsDistributed);
+
+        // 累计用户质押收益
+        totalClaimedStakingReward[user] += userPayout;
+        emit UserStakingRewardUpdated(user, userPayout, totalClaimedStakingReward[user]);
 
         // Recycle AE tokens
         AE.recycle(aeTokensUsed);
@@ -546,6 +564,18 @@ abstract contract StakingBase is Ownable, IStaking {
         dividends = totalDividendsDistributed;
         educationFund = totalEducationFundDistributed;
         stakerCount = totalStakers;
+    }
+
+    /// @notice 获取用户累计收益数据
+    /// @param user 用户地址
+    /// @return stakingReward 累计质押收益 (已领取)
+    /// @return communityReward 累计社区收益 (已领取)
+    function getUserRewardSummary(address user) external view returns (
+        uint256 stakingReward,
+        uint256 communityReward
+    ) {
+        stakingReward = totalClaimedStakingReward[user];
+        communityReward = totalClaimedCommunityReward[user];
     }
 
     /// @notice 获取用户所有质押订单的完整信息
@@ -1228,6 +1258,14 @@ abstract contract StakingBase is Ownable, IStaking {
 
         amount = user_record.amount;
         reward = _calculateStakeReward(user_record);
+
+        // [修复 C-02] 扣除已通过 withdrawInterest 提取的利息
+        uint256 alreadyWithdrawn = withdrawnInterest[sender][index];
+        if (alreadyWithdrawn > 0) {
+            require(reward > alreadyWithdrawn, "Reward calculation error");
+            reward -= alreadyWithdrawn;
+        }
+
         user_record.status = true;
 
         _update(sender, address(0), amount);
@@ -1345,10 +1383,13 @@ abstract contract StakingBase is Ownable, IStaking {
 
         if (referralChain.length == 0) {
             IERC20(USDX).transfer(rootAddress, fee);
+            // rootAddress 作为兜底也累加社区收益
+            totalClaimedCommunityReward[rootAddress] += fee;
+            emit UserCommunityRewardUpdated(rootAddress, fee, totalClaimedCommunityReward[rootAddress]);
 
-            address[7] memory emptyRecipients;
-            uint256[7] memory emptyAmounts;
-            for (uint8 j = 0; j < 7; j++) {
+            address[9] memory emptyRecipients;
+            uint256[9] memory emptyAmounts;
+            for (uint8 j = 0; j < 9; j++) {
                 emptyRecipients[j] = address(0);
                 emptyAmounts[j] = 0;
             }
@@ -1377,15 +1418,18 @@ abstract contract StakingBase is Ownable, IStaking {
 
         (
             uint256 totalDistributed,
-            address[7] memory tierRecipients,
-            uint256[7] memory tierAmounts,
-            uint8 activeTiers
+            address[9] memory tierRecipients,
+            uint256[9] memory tierAmounts,
+            uint16 activeTiers
         ) = _distributeHybridRewards(referralChain, memberTiers, _interset);
 
         uint256 marketingAmount = 0;
         if (totalDistributed < fee) {
             marketingAmount = fee - totalDistributed;
             IERC20(USDX).transfer(rootAddress, marketingAmount);
+            // rootAddress 兜底未分配部分也累加社区收益
+            totalClaimedCommunityReward[rootAddress] += marketingAmount;
+            emit UserCommunityRewardUpdated(rootAddress, marketingAmount, totalClaimedCommunityReward[rootAddress]);
         }
 
         emit TeamRewardDistributionCompleted(
@@ -1409,20 +1453,20 @@ abstract contract StakingBase is Ownable, IStaking {
         private
         returns (
             uint256 totalDistributed,
-            address[7] memory tierRecipients,
-            uint256[7] memory tierAmounts,
-            uint8 activeTiers
+            address[9] memory tierRecipients,
+            uint256[9] memory tierAmounts,
+            uint16 activeTiers
         )
     {
         totalDistributed = 0;
         activeTiers = 0;
 
-        for (uint8 j = 0; j < 7; j++) {
+        for (uint8 j = 0; j < 9; j++) {
             tierRecipients[j] = address(0);
             tierAmounts[j] = 0;
         }
 
-        bool[8] memory tierAllocated;
+        bool[10] memory tierAllocated;
         uint256 cumulativeAllocatedRate = 0;
 
         for (uint256 i = 0; i < referralChain.length; ) {
@@ -1449,12 +1493,16 @@ abstract contract StakingBase is Ownable, IStaking {
                         IERC20(USDX).transfer(referralChain[i], memberReward);
                         totalDistributed += memberReward;
 
+                        // 累计用户社区收益
+                        totalClaimedCommunityReward[referralChain[i]] += memberReward;
+                        emit UserCommunityRewardUpdated(referralChain[i], memberReward, totalClaimedCommunityReward[referralChain[i]]);
+
                         tierRecipients[currentTier - 1] = referralChain[i];
                         tierAmounts[currentTier - 1] = memberReward;
 
                         activeTiers =
                             activeTiers |
-                            uint8(1 << (currentTier - 1));
+                            uint16(1 << (currentTier - 1));
 
                         emit StrictDifferentialRewardPaid(
                             referralChain[i],
