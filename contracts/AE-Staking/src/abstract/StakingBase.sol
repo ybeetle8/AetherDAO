@@ -548,6 +548,51 @@ abstract contract StakingBase is Ownable, IStaking {
         stakerCount = totalStakers;
     }
 
+    /// @notice 获取用户所有质押订单的完整信息
+    /// @param user 用户地址
+    /// @return orders 质押订单信息数组
+    function getUserStakeRecords(
+        address user
+    ) external view returns (IStaking.StakeOrderInfo[] memory orders) {
+        IStaking.Record[] storage stakes = userStakeRecord[user];
+        uint256 len = stakes.length;
+        orders = new IStaking.StakeOrderInfo[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            IStaking.Record storage rec = stakes[i];
+
+            uint256 currentVal = 0;
+            uint256 interest = 0;
+            bool canWd = false;
+            uint256 remaining = 0;
+
+            if (!rec.status) {
+                // 未提取: 计算当前价值和利息
+                currentVal = _calculateStakeReward(rec);
+                interest = currentVal > rec.amount ? currentVal - rec.amount : 0;
+
+                // 计算到期状态
+                uint256 elapsed = block.timestamp - rec.stakeTime;
+                uint256 required = getStakePeriod(rec.stakeIndex);
+                canWd = elapsed >= required;
+                remaining = canWd ? 0 : required - elapsed;
+            }
+
+            orders[i] = IStaking.StakeOrderInfo({
+                index: i,
+                stakeTime: rec.stakeTime,
+                amount: rec.amount,
+                status: rec.status,
+                stakeIndex: rec.stakeIndex,
+                currentValue: currentVal,
+                canWithdraw: canWd,
+                timeRemaining: remaining,
+                earnedInterest: interest,
+                withdrawnInterestAmount: withdrawnInterest[user][i]
+            });
+        }
+    }
+
     function getReferrals(
         address _user,
         uint256 _maxDepth

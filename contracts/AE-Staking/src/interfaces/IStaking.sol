@@ -118,6 +118,32 @@ interface IStaking {
         uint256 interestEarned;
     }
 
+    /**
+     * @notice 前端展示用的质押订单完整信息
+     * @param index 质押记录索引
+     * @param stakeTime 质押时间
+     * @param amount 质押本金 (USDX)
+     * @param status 是否已提取 (true = 已提取)
+     * @param stakeIndex 质押档位 (0=7天, 1=30天, 2=90天, 3=180天, 4=365天)
+     * @param currentValue 当前价值 (本金 + 利息)
+     * @param canWithdraw 是否可以提取
+     * @param timeRemaining 距到期剩余秒数 (0 = 已到期)
+     * @param earnedInterest 已赚取利息 (currentValue - amount)
+     * @param withdrawnInterestAmount 已提取的利息金额
+     */
+    struct StakeOrderInfo {
+        uint256 index;
+        uint40 stakeTime;
+        uint160 amount;
+        bool status;
+        uint8 stakeIndex;
+        uint256 currentValue;
+        bool canWithdraw;
+        uint256 timeRemaining;
+        uint256 earnedInterest;
+        uint256 withdrawnInterestAmount;
+    }
+
     // =========================================================================
     // EVENTS
     // =========================================================================
@@ -390,6 +416,13 @@ interface IStaking {
     // =========================================================================
     // VIEW FUNCTIONS - USER INFORMATION
     // =========================================================================
+
+    /// @notice 获取用户所有质押订单的完整信息
+    /// @param user 用户地址
+    /// @return orders 质押订单信息数组
+    function getUserStakeRecords(
+        address user
+    ) external view returns (StakeOrderInfo[] memory orders);
 
     /// @notice Retrieves complete user information from staking contract
     /// @param user The address of the user to query
