@@ -1,6 +1,6 @@
 # AE-Staking 合约事件 (Events) 说明
 
-本文档整理了 AE-Staking 合约中所有与**质押、团队奖励、推荐人**相关的事件，供前端对接参考。
+本文档整理了 AE-Staking 合约中所有与**质押、团队奖励、推荐人、全局统计、用户收益**相关的事件，供前端对接参考。
 
 事件定义来源：
 - `contracts/AE-Staking/src/interfaces/IStaking.sol`
@@ -24,7 +24,7 @@ event Staked(
 );
 ```
 
-**触发函数：** `stake()`
+**触发函数：** `stake()` → 内部 `_mintStakeRecord()`
 
 **前端用途：** 监听用户质押成功，更新质押列表、余额显示。
 
@@ -172,6 +172,26 @@ event Transfer(
 
 ---
 
+### 1.9 StakerCountChanged — 质押参与人数变更
+
+用户首次质押（加入）或最后一笔质押赎回（离开）时触发。
+
+```solidity
+event StakerCountChanged(
+    address indexed user,         // 用户地址
+    bool isJoin,                  // true=加入, false=离开
+    uint256 newTotalStakers       // 更新后的总质押人数
+);
+```
+
+**触发函数：**
+- 加入：`_mintStakeRecord()` (内部函数)
+- 离开：`_recordWithdrawal()` (内部函数)
+
+**前端用途：** Dashboard 展示当前质押参与人数，实时更新。
+
+---
+
 ## 二、推荐人相关事件
 
 ### 2.1 ReferralBound — 绑定推荐人
@@ -223,9 +243,9 @@ event TeamRewardDistributionCompleted(
     uint256 totalTeamRewardPool,       // 团队奖励池总额（利息的 35%）
     uint256 totalDistributed,          // 实际分配给各层级的总额
     uint256 marketingAmount,           // 发送给营销地址的金额
-    address[7] tierRecipients,         // 各层级接收者地址 [V1..V7]，无则为 address(0)
-    uint256[7] tierAmounts,            // 各层级奖励金额 [V1..V7]，无则为 0
-    uint8 activeTiers                  // 活跃层级位图 (bit 0=V1, bit 1=V2, ... bit 6=V7)
+    address[9] tierRecipients,         // 各层级接收者地址 [V1..V9]，无则为 address(0)
+    uint256[9] tierAmounts,            // 各层级奖励金额 [V1..V9]，无则为 0
+    uint16 activeTiers                 // 活跃层级位图 (bit 0=V1, bit 1=V2, ... bit 8=V9)
 );
 ```
 
@@ -243,6 +263,8 @@ event TeamRewardDistributionCompleted(
 | bit 4 | V5 | 该位为1表示 V5 有接收者 |
 | bit 5 | V6 | 该位为1表示 V6 有接收者 |
 | bit 6 | V7 | 该位为1表示 V7 有接收者 |
+| bit 7 | V8 | 该位为1表示 V8 有接收者 |
+| bit 8 | V9 | 该位为1表示 V9 有接收者 |
 
 ---
 
@@ -267,9 +289,51 @@ event StrictDifferentialRewardPaid(
 
 ---
 
-### 3.3 PreacherCheckFailed — 布道者检查失败
+### 3.3 UserCommunityRewardUpdated — 用户社区（团队）收益到账
 
-团队奖励分配时，用户未通过布道者资格检查时触发。
+团队奖励分配时，每个接收到团队奖励的用户都会触发此事件。**这是"领取团队奖励"的核心追踪事件。**
+
+```solidity
+event UserCommunityRewardUpdated(
+    address indexed user,         // 用户地址
+    uint256 amount,               // 本次到账金额
+    uint256 newTotal              // 更新后的累计社区收益
+);
+```
+
+**触发函数：** `_distributeTeamReward()` → `_distributeHybridRewards()` (内部函数)
+
+**触发位置：**
+- rootAddress 兜底分配 (无推荐链时)
+- rootAddress 接收未分配余额
+- 各层级团队成员接收奖励
+
+**前端用途：** 用户个人中心展示**累计社区（团队）收益**，追踪每一笔团队奖励到账记录。
+
+---
+
+### 3.4 GlobalEducationFundUpdated — 全网累计教育基金更新
+
+每次利息分配时，5% 教育基金转账完成后触发。
+
+```solidity
+event GlobalEducationFundUpdated(
+    uint256 amount,                   // 本次教育基金金额
+    uint256 newTotalEducationFund     // 更新后的全网累计教育基金
+);
+```
+
+**触发函数：** `_distributeTeamReward()` (内部函数)
+
+**前端用途：** Dashboard 展示全网累计教育基金总额。
+
+---
+
+### 3.5 PreacherCheckFailed — 布道者检查失败
+
+> **注意：此事件已在 IStaking.sol 中声明，但合约代码中尚未 emit。属于预留事件。**
+
+团队奖励分配时，用户未通过布道者资格检查时应触发。
 
 ```solidity
 event PreacherCheckFailed(
@@ -283,9 +347,50 @@ event PreacherCheckFailed(
 
 ---
 
-## 四、管理/配置事件
+## 四、用户收益统计事件
 
-### 4.1 StakingRatesUpdated — 质押利率更新
+### 4.1 UserStakingRewardUpdated — 用户质押收益累计更新
+
+用户每次 unstake 或 withdrawInterest 到账时触发，记录用户累计质押收益。
+
+```solidity
+event UserStakingRewardUpdated(
+    address indexed user,         // 用户地址
+    uint256 amount,               // 本次到账金额
+    uint256 newTotal              // 更新后的累计质押收益
+);
+```
+
+**触发函数：**
+- `unstake()` — 用户赎回到账时
+- `withdrawInterest()` — 用户提前提取利息到账时
+
+**前端用途：** 用户个人中心展示**累计质押收益**（已领取总额）。
+
+---
+
+### 4.2 GlobalDividendUpdated — 全网累计分红更新
+
+每次用户 unstake 或 withdrawInterest 到账时触发，用于追踪全网累计分红总额。
+
+```solidity
+event GlobalDividendUpdated(
+    uint256 userPayout,           // 本次用户到账金额
+    uint256 newTotalDividends     // 更新后的全网累计分红
+);
+```
+
+**触发函数：**
+- `unstake()` — 用户赎回到账时
+- `withdrawInterest()` — 用户提前提取利息到账时
+
+**前端用途：** Dashboard 展示全网累计分红总额，实时更新。
+
+---
+
+## 五、管理/配置事件
+
+### 5.1 StakingRatesUpdated — 质押利率更新
 
 质押利率更新时触发。
 
@@ -297,7 +402,7 @@ event StakingRatesUpdated(uint256[5] newRates);  // 新的每秒利率数组
 
 ---
 
-### 4.2 AEContractSet — AE 合约地址设置
+### 5.2 AEContractSet — AE 合约地址设置
 
 设置 AE 代币合约地址时触发。
 
@@ -309,7 +414,7 @@ event AEContractSet(address indexed aeAddress);   // AE 合约地址
 
 ---
 
-### 4.3 FeeRecipientUpdated — 手续费接收地址更新
+### 5.3 FeeRecipientUpdated — 手续费接收地址更新
 
 ```solidity
 event FeeRecipientUpdated(
@@ -322,7 +427,7 @@ event FeeRecipientUpdated(
 
 ---
 
-### 4.4 MarketingAddressUpdated — 营销地址更新
+### 5.4 MarketingAddressUpdated — 营销地址更新
 
 ```solidity
 event MarketingAddressUpdated(
@@ -333,7 +438,9 @@ event MarketingAddressUpdated(
 
 ---
 
-### 4.5 TestModeSet — 测试模式开关
+### 5.5 TestModeSet — 测试模式开关
+
+> **注意：此事件已在 IStaking.sol 中声明，但 Staking 合约中无 testMode 相关逻辑，尚未 emit。属于预留事件。**
 
 ```solidity
 event TestModeSet(bool enabled);   // 是否启用测试模式
@@ -341,7 +448,9 @@ event TestModeSet(bool enabled);   // 是否启用测试模式
 
 ---
 
-### 4.6 PresaleDurationUpdated — 预售时长更新
+### 5.6 PresaleDurationUpdated — 预售时长更新
+
+> **注意：此事件已在 IStaking.sol 中声明，但 Staking 合约中无预售相关逻辑，尚未 emit。属于预留事件。**
 
 ```solidity
 event PresaleDurationUpdated(uint256 duration);  // 预售时长
@@ -349,7 +458,7 @@ event PresaleDurationUpdated(uint256 duration);  // 预售时长
 
 ---
 
-## 五、前端监听建议
+## 六、前端监听建议
 
 ### 核心业务事件（建议优先监听）
 
@@ -358,10 +467,15 @@ event PresaleDurationUpdated(uint256 duration);  // 预售时长
 | `Staked` | 用户质押成功 | 高 |
 | `WithdrawalCompleted` | 用户赎回完成 | 高 |
 | `InterestWithdrawn` | 用户提取利息 | 高 |
+| `UserStakingRewardUpdated` | 用户质押收益到账（含 unstake 和 withdrawInterest） | 高 |
+| `UserCommunityRewardUpdated` | 用户团队奖励到账 | 高 |
 | `ReferralBound` | 推荐关系绑定 | 高 |
+| `GlobalDividendUpdated` | Dashboard 全网分红统计 | 高 |
 | `TeamRewardDistributionCompleted` | 团队奖励分配 | 中 |
 | `RedemptionFeeCollected` | 赎回手续费 | 中 |
 | `StrictDifferentialRewardPaid` | 差异化奖励 | 中 |
+| `GlobalEducationFundUpdated` | Dashboard 教育基金统计 | 中 |
+| `StakerCountChanged` | Dashboard 质押人数 | 中 |
 
 ### 监听示例（ethers.js v6）
 
@@ -395,6 +509,26 @@ stakingContract.on("TeamRewardDistributionCompleted",
         console.log(`实际分配: ${totalDistributed}, 营销: ${marketingAmount}`);
     }
 );
+
+// 监听用户质押收益到账
+stakingContract.on("UserStakingRewardUpdated", (user, amount, newTotal) => {
+    console.log(`用户 ${user} 质押收益到账 ${amount}, 累计 ${newTotal}`);
+});
+
+// 监听用户团队奖励到账（领取团队奖励）
+stakingContract.on("UserCommunityRewardUpdated", (user, amount, newTotal) => {
+    console.log(`用户 ${user} 社区收益到账 ${amount}, 累计 ${newTotal}`);
+});
+
+// 监听全网分红更新
+stakingContract.on("GlobalDividendUpdated", (userPayout, newTotalDividends) => {
+    console.log(`全网累计分红: ${newTotalDividends}`);
+});
+
+// 监听质押人数变化
+stakingContract.on("StakerCountChanged", (user, isJoin, newTotalStakers) => {
+    console.log(`${isJoin ? '加入' : '离开'}: ${user}, 当前总人数: ${newTotalStakers}`);
+});
 ```
 
 ### 查询历史事件示例
@@ -407,4 +541,12 @@ const events = await stakingContract.queryFilter(filter, fromBlock, toBlock);
 // 查询用户的推荐关系
 const referralFilter = stakingContract.filters.ReferralBound(userAddress);
 const referralEvents = await stakingContract.queryFilter(referralFilter);
+
+// 查询用户历史社区收益（团队奖励领取记录）
+const communityFilter = stakingContract.filters.UserCommunityRewardUpdated(userAddress);
+const communityEvents = await stakingContract.queryFilter(communityFilter, fromBlock, toBlock);
+
+// 查询用户历史质押收益记录
+const stakingRewardFilter = stakingContract.filters.UserStakingRewardUpdated(userAddress);
+const stakingRewardEvents = await stakingContract.queryFilter(stakingRewardFilter, fromBlock, toBlock);
 ```
