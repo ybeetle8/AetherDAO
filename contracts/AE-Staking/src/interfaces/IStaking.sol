@@ -285,6 +285,32 @@ interface IStaking {
     );
 
     // =========================================================================
+    // GLOBAL STATISTICS EVENTS
+    // =========================================================================
+
+    /**
+     * @notice Emitted when global dividend total is updated
+     * @param userPayout The payout amount added
+     * @param newTotalDividends New cumulative total dividends
+     */
+    event GlobalDividendUpdated(uint256 userPayout, uint256 newTotalDividends);
+
+    /**
+     * @notice Emitted when global education fund total is updated
+     * @param amount The education fund amount added
+     * @param newTotalEducationFund New cumulative total education fund
+     */
+    event GlobalEducationFundUpdated(uint256 amount, uint256 newTotalEducationFund);
+
+    /**
+     * @notice Emitted when staker count changes
+     * @param user The user address
+     * @param isJoin True if user joined, false if user left
+     * @param newTotalStakers New total staker count
+     */
+    event StakerCountChanged(address indexed user, bool isJoin, uint256 newTotalStakers);
+
+    // =========================================================================
     // CORE STAKING FUNCTIONS
     // =========================================================================
 
@@ -635,4 +661,22 @@ interface IStaking {
         external
         view
         returns (uint256 withdrawn);
+
+    // =========================================================================
+    // GLOBAL STATISTICS FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice 获取全局统计数据（供前端 Dashboard 使用）
+     * @return tvl 全网质押总量 (当前活跃本金)
+     * @return dividends 全网累计分红 (用户累计到账 USDX)
+     * @return educationFund 全网累计教育基金
+     * @return stakerCount 当前质押参与人数
+     */
+    function getGlobalStats() external view returns (
+        uint256 tvl,
+        uint256 dividends,
+        uint256 educationFund,
+        uint256 stakerCount
+    );
 }

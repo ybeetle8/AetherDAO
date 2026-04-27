@@ -473,6 +473,11 @@ abstract contract AEBase is ERC20, Ownable {
     // EXTERNAL VIEW FUNCTIONS
     // =========================================================================
 
+    /// @notice 获取 AE 代币累计销毁总量
+    function getTotalBurned() external view returns (uint256) {
+        return balanceOf(DEAD_ADDRESS);
+    }
+
     function getAccumulatedFees()
         external
         view

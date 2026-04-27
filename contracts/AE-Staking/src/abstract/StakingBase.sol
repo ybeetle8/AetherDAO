@@ -169,6 +169,22 @@ abstract contract StakingBase is Ownable, IStaking {
     uint256 public dailyStakedAmount;
     uint256 public dailyPeriodStart;
 
+    // =========================================================================
+    // GLOBAL STATISTICS
+    // =========================================================================
+
+    // 全网累计分红: 所有用户历史总到账 USDX (userPayout 之和)
+    uint256 public totalDividendsDistributed;
+
+    // 全网累计教育基金: 拨付给教育基金的 USDX 累计总额
+    uint256 public totalEducationFundDistributed;
+
+    // 当前质押参与人数 (有活跃质押的独立地址数)
+    uint256 public totalStakers;
+
+    // 用户是否为活跃质押者 (用于参与人数计数)
+    mapping(address => bool) private _isActiveStaker;
+
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
         address indexed oldAddress,
@@ -316,6 +332,10 @@ abstract contract StakingBase is Ownable, IStaking {
             );
 
             IERC20(USDX).transfer(msg.sender, userPayout);
+
+            // 累计分红统计
+            totalDividendsDistributed += userPayout;
+            emit GlobalDividendUpdated(userPayout, totalDividendsDistributed);
         }
 
         AE.recycle(aeTokensUsed);
@@ -397,6 +417,10 @@ abstract contract StakingBase is Ownable, IStaking {
 
         // Transfer USDX to user
         IERC20(USDX).transfer(user, userPayout);
+
+        // 累计分红统计
+        totalDividendsDistributed += userPayout;
+        emit GlobalDividendUpdated(userPayout, totalDividendsDistributed);
 
         // Recycle AE tokens
         AE.recycle(aeTokensUsed);
@@ -506,6 +530,23 @@ abstract contract StakingBase is Ownable, IStaking {
     // =========================================================================
     // EXTERNAL VIEW FUNCTIONS
     // =========================================================================
+
+    /// @notice 获取全局统计数据（供前端 Dashboard 使用）
+    /// @return tvl 全网质押总量 (当前活跃本金)
+    /// @return dividends 全网累计分红 (用户累计到账 USDX)
+    /// @return educationFund 全网累计教育基金
+    /// @return stakerCount 当前质押参与人数
+    function getGlobalStats() external view returns (
+        uint256 tvl,
+        uint256 dividends,
+        uint256 educationFund,
+        uint256 stakerCount
+    ) {
+        tvl = totalSupply;
+        dividends = totalDividendsDistributed;
+        educationFund = totalEducationFundDistributed;
+        stakerCount = totalStakers;
+    }
 
     function getReferrals(
         address _user,
@@ -1092,6 +1133,13 @@ abstract contract StakingBase is Ownable, IStaking {
     ) private {
         if (!isBindReferral(sender)) revert MustBindReferral();
 
+        // 如果是新参与者，参与人数 +1
+        if (!_isActiveStaker[sender]) {
+            _isActiveStaker[sender] = true;
+            totalStakers++;
+            emit StakerCountChanged(sender, true, totalStakers);
+        }
+
         IStaking.RecordTT memory tsy;
         tsy.stakeTime = uint40(block.timestamp);
         tsy.tamount = uint160(totalSupply);
@@ -1138,6 +1186,13 @@ abstract contract StakingBase is Ownable, IStaking {
         user_record.status = true;
 
         _update(sender, address(0), amount);
+
+        // 如果用户所有本金都已取出，参与人数 -1
+        if (balances[sender] == 0 && _isActiveStaker[sender]) {
+            _isActiveStaker[sender] = false;
+            totalStakers--;
+            emit StakerCountChanged(sender, false, totalStakers);
+        }
 
         unchecked {
             userIndex[sender] = userIndex[sender] + 1;
@@ -1229,6 +1284,10 @@ abstract contract StakingBase is Ownable, IStaking {
         }
         // 直接将 5% 奖励转给教育基金地址
         IERC20(USDX).transfer(educationFundAddress, fee);
+
+        // 累计教育基金统计
+        totalEducationFundDistributed += fee;
+        emit GlobalEducationFundUpdated(fee, totalEducationFundDistributed);
     }
 
     function _distributeTeamReward(

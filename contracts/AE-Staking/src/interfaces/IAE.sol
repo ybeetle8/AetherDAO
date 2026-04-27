@@ -442,6 +442,9 @@ interface IAE is IERC20 {
     function getUSDXAddress() external view returns (address);
     function getUniswapV2Pair() external view returns (address);
 
+    /// @notice 获取 AE 代币累计销毁总量
+    function getTotalBurned() external view returns (uint256);
+
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
