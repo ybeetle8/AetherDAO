@@ -99,8 +99,12 @@ async function main() {
 
   const runner = new TestRunner("C-01 赎回手续费修复验证");
 
-  // 准备所有用户
+  // 准备所有用户（先确保有足够 BNB 支付 gas）
   for (const u of [user1, user2, user3, user4, user5, user6, user7]) {
+    const balance = await hre.ethers.provider.getBalance(u.address);
+    if (balance < parseEther("1")) {
+      await deployer.sendTransaction({ to: u.address, value: parseEther("1") });
+    }
     await prepareUser(usdx, staking, u, stakingAddress, rootAddress);
   }
 

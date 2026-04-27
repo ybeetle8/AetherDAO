@@ -1,6 +1,6 @@
 {
   "network": "localhost",
-  "timestamp": "2026-04-25T09:08:58.920Z",
+  "timestamp": "2026-04-27T02:49:19.000Z",
   "contracts": {
     "AE": "0x2FE09E2f6fe5D7270749b191ddE88Fb096A614A0",
     "Staking": "0xaA29E574eacdb6f0d3762185969A39E08ba069cF",
@@ -12,7 +12,7 @@
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "marketingAddress": "0x1234567890123456789012345678901234567890",
     "rootAddress": "0x2345678901234567890123456789012345678901",
-    "feeRecipient": "0x3456789012345678901234567890123456789012",
+    "feeRecipient": "0x0000000000000000000000000000000000000001",
     "buyTaxNodeRewardAddress": "0x06Ba6DA5d1942DA184ad3E521bC51dfF32D721d9",
     "buyTaxCommunityRewardAddress": "0xeE1285c96E77f2E8CB9C38b66A0BB51b2fCE5537",
     "marketingFundAddress": "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17",
