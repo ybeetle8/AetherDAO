@@ -48,6 +48,10 @@ module.exports = {
     hardhat: {
       allowUnlimitedContractSize: true,
       chainId: 10056,
+      accounts: {
+        mnemonic: "test test test test test test test test test test test junk",
+        accountsBalance: "100000000000000000000" // 每个账户 100 BNB
+      },
       forking: {
         url: "https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/",
         blockNumber: 64340000,
