@@ -59,7 +59,7 @@ abstract contract StakingBase is Ownable, IStaking {
     uint256 internal constant PREACHER_THRESHOLD = 200 ether;
     uint256 internal constant REFERRAL_REWARD_RATE = 5;
     uint256 internal constant LIQUIDITY_SPLIT_DIVISOR = 2;
-    uint256 internal constant POOL_PERCENTAGE_DIVISOR = 100;
+    uint256 internal constant POOL_PERCENTAGE_DIVISOR = 50;
     uint256 internal constant NETWORK_CHECK_INTERVAL = 1 minutes;
     uint256 internal constant MIN_STAKE_AMOUNT = 100 ether;
     uint256 internal constant MAX_STAKE_LIMIT = 1000 ether;
