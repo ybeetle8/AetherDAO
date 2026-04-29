@@ -73,8 +73,9 @@ module.exports = {
       }
     },
 
-    localhost: {
-      url: "http://127.0.0.1:8545",
+    localhost: {  
+      url: "http://47.109.157.92:8545",
+      //url: "http://127.0.0.1:8545",
       //url: "https://bsc.ai-hello.cn/",
       chainId: 10056,
       accounts: {
