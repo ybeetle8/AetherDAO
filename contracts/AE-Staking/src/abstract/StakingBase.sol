@@ -195,6 +195,9 @@ abstract contract StakingBase is Ownable, IStaking {
     /// @notice 用户累计社区收益 (作为推荐人获得的团队奖励之和)
     mapping(address => uint256) public totalClaimedCommunityReward;
 
+    /// @notice 用户累计已退还本金 (unstake 时退还的本金之和)
+    mapping(address => uint256) public totalPrincipalReturned;
+
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
         address indexed oldAddress,
@@ -350,6 +353,9 @@ abstract contract StakingBase is Ownable, IStaking {
             // 累计用户质押收益
             totalClaimedStakingReward[msg.sender] += userPayout;
             emit UserStakingRewardUpdated(msg.sender, userPayout, totalClaimedStakingReward[msg.sender]);
+
+            // 累计已退还本金
+            totalPrincipalReturned[msg.sender] += principalAmount;
         }
 
         AE.recycle(aeTokensUsed);
@@ -576,6 +582,15 @@ abstract contract StakingBase is Ownable, IStaking {
     ) {
         stakingReward = totalClaimedStakingReward[user];
         communityReward = totalClaimedCommunityReward[user];
+    }
+
+    /// @notice 获取用户已领取的质押净利息累计（扣费后实际到账，不含本金）
+    /// @param user 用户地址
+    /// @return netInterest 净利息累计 = totalClaimedStakingReward - totalPrincipalReturned
+    function getClaimedNetInterest(address user) external view returns (uint256 netInterest) {
+        uint256 stakingReward = totalClaimedStakingReward[user];
+        uint256 principalReturned = totalPrincipalReturned[user];
+        netInterest = stakingReward > principalReturned ? stakingReward - principalReturned : 0;
     }
 
     /// @notice 获取用户所有质押订单的完整信息

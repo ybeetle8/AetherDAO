@@ -741,4 +741,9 @@ interface IStaking {
         uint256 stakingReward,
         uint256 communityReward
     );
+
+    /// @notice 获取用户已领取的质押净利息累计（扣费后实际到账，不含本金）
+    /// @param user 用户地址
+    /// @return netInterest 净利息累计 = totalClaimedStakingReward - totalPrincipalReturned
+    function getClaimedNetInterest(address user) external view returns (uint256 netInterest);
 }
