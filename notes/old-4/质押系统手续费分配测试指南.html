@@ -1,0 +1,840 @@
+<!DOCTYPE html><html><head>
+      <title>质押系统手续费分配测试指南</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:////home/ybeetle/.vscode-server/extensions/shd101wyy.markdown-preview-enhanced-0.8.24/crossnote/dependencies/katex/katex.min.css">
+      
+      
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-details{margin:0;padding:0;border:none}.markdown-preview .md-toc summary.md-toc-link-wrapper{cursor:pointer;list-style-position:outside}.markdown-preview .md-toc summary.md-toc-link-wrapper::marker{font-size:.85em}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='0']{margin-left:12px}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='1']{margin-left:28px}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='2']{margin-left:44px}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='3']{margin-left:60px}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='4']{margin-left:76px}.markdown-preview .md-toc .md-toc-link-wrapper[data-level='5']{margin-left:80px}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-details{margin:0;padding:0;border:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='0']{padding-left:0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='1']{padding-left:16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='2']{padding-left:32px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='3']{padding-left:48px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='4']{padding-left:64px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper[data-level='5']{padding-left:80px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      <div>
+<h1 id="aetherdao-质押系统--手续费分配测试指南">AetherDAO 质押系统 — 手续费分配测试指南 </h1>
+<blockquote>
+<p>本文以 <strong>1000 USDC 质押、30天期</strong> 为例，详细说明质押、领息、解质押各环节的手续费计算与分配流程。供测试人员对照验证。</p>
+</blockquote>
+<hr>
+<h2 id="一-前置知识关键常量">一、前置知识：关键常量 </h2>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金费率</td>
+<td>5%</td>
+<td>从利息中扣除</td>
+</tr>
+<tr>
+<td>团队奖励费率</td>
+<td>最高 35%</td>
+<td>从利息中扣除，按推荐链差级分配</td>
+</tr>
+<tr>
+<td>赎回手续费</td>
+<td>5%（500 基点）</td>
+<td>从用户到手金额中额外扣除</td>
+</tr>
+<tr>
+<td>AE 买入燃烧费</td>
+<td>0.5%</td>
+<td>质押时 swap USDX→AE 时触发</td>
+</tr>
+<tr>
+<td>AE 买入流动性费</td>
+<td>2.5%</td>
+<td>质押时 swap USDX→AE 时触发</td>
+</tr>
+<tr>
+<td>AE 买入总费率</td>
+<td>3.0%</td>
+<td>上述两项之和</td>
+</tr>
+<tr>
+<td>最小质押金额</td>
+<td>100 USDX</td>
+<td>—</td>
+</tr>
+<tr>
+<td>单笔最大质押</td>
+<td>1,000 USDX</td>
+<td>还受池子 1% 动态限制</td>
+</tr>
+<tr>
+<td>用户总质押上限</td>
+<td>10,000 USDX</td>
+<td>—</td>
+</tr>
+<tr>
+<td>7天档位</td>
+<td>每人仅可使用一次</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="质押档位与日利率主网">质押档位与日利率（主网） </h3>
+<table>
+<thead>
+<tr>
+<th>档位 Index</th>
+<th>锁仓期</th>
+<th>日利率</th>
+<th>复利系数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>7 天</td>
+<td>0.6%</td>
+<td>1.006</td>
+</tr>
+<tr>
+<td>1</td>
+<td>30 天</td>
+<td>0.9%</td>
+<td>1.009</td>
+</tr>
+<tr>
+<td>2</td>
+<td>90 天</td>
+<td>1.1%</td>
+<td>1.011</td>
+</tr>
+<tr>
+<td>3</td>
+<td>180 天</td>
+<td>1.5%</td>
+<td>1.015</td>
+</tr>
+<tr>
+<td>4</td>
+<td>365 天</td>
+<td>2.0%</td>
+<td>1.020</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="二-场景设定">二、场景设定 </h2>
+<ul>
+<li><strong>用户 Alice</strong> 质押 <strong>1000 USDX</strong>，选择 <strong>30天档（Index 1，日利率 0.9%）</strong></li>
+<li>Alice 的推荐链：Alice → Bob(V2) → Charlie(V1)
+<ul>
+<li>Bob 的有效等级 = V2（团队KPI等级和个人质押等级的较小值）</li>
+<li>Charlie 的有效等级 = V1</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="三-质押时stake手续费分配">三、质押时（stake）：手续费分配 </h2>
+<h3 id="31-流程概述">3.1 流程概述 </h3>
+<p>用户调用 <code>stake(1000, 1)</code>，合约执行 <code>_swapAndAddLiquidity(1000 USDX)</code>：</p>
+<ol>
+<li>从用户钱包转入 <strong>1000 USDX</strong> 到合约</li>
+<li>将 1000 USDX 一分为二：
+<ul>
+<li><strong>500 USDX</strong> 用于在 DEX 上 swap 为 AE 代币</li>
+<li><strong>500 USDX</strong> 保留，用于添加流动性</li>
+</ul>
+</li>
+</ol>
+<h3 id="32-swap-环节的手续费ae-代币层面">3.2 Swap 环节的手续费（AE 代币层面） </h3>
+<p>swap 500 USDX → AE 时，AE 代币合约收取买入税：</p>
+<table>
+<thead>
+<tr>
+<th>费用项</th>
+<th>费率</th>
+<th>金额（从 AE 产出中扣）</th>
+<th>去向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>燃烧费</td>
+<td>0.5%</td>
+<td>swap 产出的 0.5% AE 被销毁</td>
+<td>销毁（减少供应）</td>
+</tr>
+<tr>
+<td>流动性费</td>
+<td>2.5%</td>
+<td>swap 产出的 2.5% AE 归入 LP</td>
+<td>LP 池积累</td>
+</tr>
+<tr>
+<td><strong>合计</strong></td>
+<td><strong>3.0%</strong></td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：这 3% 是 AE 代币合约的买入税，扣的是 AE 产出量，不是 USDX。用户投入的 1000 USDX 全部进入协议（一半 swap、一半加 LP），但拿到的 AE 少了 3%。</p>
+</blockquote>
+<h3 id="33-添加流动性">3.3 添加流动性 </h3>
+<ul>
+<li>将 swap 得到的 AE + 剩余 500 USDX 组成 LP</li>
+<li>LP 代币发送到 <code>address(0)</code>（永久锁定）</li>
+</ul>
+<h3 id="34-质押记录">3.4 质押记录 </h3>
+<ul>
+<li>合约为 Alice 铸造 sAE 代币，记录本金 = <strong>1000 USDX</strong></li>
+<li>利息按 1000 USDX 本金开始复利计算</li>
+</ul>
+<h3 id="35-测试验证点">3.5 测试验证点 </h3>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 Alice 钱包减少 1000 USDX</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认合约调用 router 进行 swap（约 500 USDX → AE）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 AE 代币的 3% 买入税被正确收取（燃烧 + 流动性）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 LP 代币发送到 address(0)</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 Alice 的质押记录：amount=1000, stakeIndex=1, status=false</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 Alice 的 sAE 余额增加</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 如果是 Index 0（7天档），确认 <code>hasUsed7DayStake</code> 被标记为 true</li>
+</ul>
+<hr>
+<h2 id="四-利息计算">四、利息计算 </h2>
+<h3 id="41-复利公式">4.1 复利公式 </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>当前价值 = 本金 × (日利率)^(已过天数)
+利息 = 当前价值 - 本金
+</code></pre><h3 id="42-以-1000-usdx-30天档为例">4.2 以 1000 USDX、30天档为例 </h3>
+<p>日利率系数 = 1.009（即每天增长 0.9%）</p>
+<table>
+<thead>
+<tr>
+<th>天数</th>
+<th>当前价值 (USDX)</th>
+<th>累计利息 (USDX)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1000 × 1.009^1 = 1,009.00</td>
+<td>9.00</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1000 × 1.009^7 ≈ 1,064.73</td>
+<td>64.73</td>
+</tr>
+<tr>
+<td>15</td>
+<td>1000 × 1.009^15 ≈ 1,143.96</td>
+<td>143.96</td>
+</tr>
+<tr>
+<td>30（到期）</td>
+<td>1000 × 1.009^30 ≈ <strong>1,308.65</strong></td>
+<td><strong>308.65</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>到期时：本金 1000 + 利息 ≈ 308.65 = 总价值 ≈ 1308.65 USDX</strong></p>
+</blockquote>
+<hr>
+<h2 id="五-提前领取利息withdrawinterest手续费分配">五、提前领取利息（withdrawInterest）：手续费分配 </h2>
+<blockquote>
+<p>可在锁仓期内多次领取已产生的利息，本金继续质押产生收益。</p>
+</blockquote>
+<h3 id="51-场景第-15-天领取利息">5.1 场景：第 15 天领取利息 </h3>
+<p>假设第 15 天，累计利息 ≈ 143.96 USDX（之前未领取过）。</p>
+<p><strong>第一步：swap AE → USDX 兑现利息</strong></p>
+<p>合约从 AE/USDX 池中 swap 出约 143.96 USDX（实际受滑点影响）。</p>
+<p>假设实际 swap 得到 <code>usdxReceived = 140 USDX</code>（含滑点损耗）。</p>
+<p><strong>第二步：从 usdxReceived 中扣除教育基金 + 团队奖励</strong></p>
+<table>
+<thead>
+<tr>
+<th>费用项</th>
+<th>计算</th>
+<th>金额</th>
+<th>去向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金</td>
+<td>140 × 5%</td>
+<td><strong>7.00 USDX</strong></td>
+<td>教育基金地址</td>
+</tr>
+<tr>
+<td>团队奖励池</td>
+<td>140 × 35%</td>
+<td><strong>49.00 USDX</strong></td>
+<td>推荐链分配（见下）</td>
+</tr>
+<tr>
+<td>扣费后余额</td>
+<td>140 - 7 - 49</td>
+<td><strong>84.00 USDX</strong></td>
+<td>准备发给用户</td>
+</tr>
+</tbody>
+</table>
+<p><strong>第三步：团队奖励分配（差级制）</strong></p>
+<p>推荐链：Alice → Bob(V2, 7%) → Charlie(V1, 3%)</p>
+<p>从 Alice 往上遍历：</p>
+<ol>
+<li><strong>Charlie（V1）</strong>：第一个遇到的 V1 等级，奖励率 = 3% - 0% = <strong>3%</strong>
+<ul>
+<li>Charlie 获得：140 × 3% = <strong>4.20 USDX</strong></li>
+</ul>
+</li>
+<li><strong>Bob（V2）</strong>：第一个遇到的 V2 等级，奖励率 = 7% - 3% = <strong>4%</strong>（差级）
+<ul>
+<li>Bob 获得：140 × 4% = <strong>5.60 USDX</strong></li>
+</ul>
+</li>
+<li>实际分出：4.20 + 5.60 = <strong>9.80 USDX</strong></li>
+<li>剩余：49.00 - 9.80 = <strong>39.20 USDX</strong> → 转给 rootAddress（市场营销）</li>
+</ol>
+<p><strong>第四步：赎回手续费</strong></p>
+<table>
+<thead>
+<tr>
+<th>费用项</th>
+<th>计算</th>
+<th>金额</th>
+<th>去向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>赎回手续费</td>
+<td>84.00 × 500/10000 = 84.00 × 5%</td>
+<td><strong>4.20 USDX</strong></td>
+<td>feeRecipient 地址</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注意：赎回手续费是额外从 AE 池 swap 出来支付的，不从用户到手金额中扣。</p>
+</blockquote>
+<p><strong>第五步：用户到手</strong></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>金额</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>用户实际到手</strong></td>
+<td><strong>84.00 USDX</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-领息费用汇总">5.2 领息费用汇总 </h3>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>金额</th>
+<th>占 swap 产出比例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金</td>
+<td>7.00</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Charlie（V1 推荐人）</td>
+<td>4.20</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>Bob（V2 推荐人）</td>
+<td>5.60</td>
+<td>4%（差级）</td>
+</tr>
+<tr>
+<td>rootAddress（市场营销）</td>
+<td>39.20</td>
+<td>28%（35%-7%的剩余）</td>
+</tr>
+<tr>
+<td>赎回手续费（feeRecipient）</td>
+<td>4.20</td>
+<td>用户到手金额的 5%（额外 swap）</td>
+</tr>
+<tr>
+<td><strong>用户到手</strong></td>
+<td><strong>84.00</strong></td>
+<td><strong>60%</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-测试验证点">5.3 测试验证点 </h3>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认利息计算正确（复利公式）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 <code>withdrawnInterest[Alice][stakeIndex]</code> 被正确更新</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认教育基金地址收到 usdxReceived × 5%</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认团队奖励按差级制分配给推荐链</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认剩余团队奖励转给 rootAddress</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认赎回手续费转给 feeRecipient</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认用户到手 = usdxReceived - 教育基金 - 团队奖励</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认本金仍在质押中，status 仍为 false</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认可以多次领取，但不能超过已产生的利息</li>
+</ul>
+<hr>
+<h2 id="六-到期解质押unstake手续费分配">六、到期解质押（unstake）：手续费分配 </h2>
+<h3 id="61-场景第-30-天到期后解质押">6.1 场景：第 30 天到期后解质押 </h3>
+<p>到期时总价值 ≈ 1308.65 USDX（本金 1000 + 利息 308.65）。</p>
+<p>假设之前在第 15 天已经领过一次利息。那么 unstake 时的处理：</p>
+<p><strong>unstake 是返还本金+全部利息的操作，利息部分指的是总复利收益。</strong></p>
+<p><strong>第一步：销毁质押记录，计算总奖励</strong></p>
+<p>合约计算 <code>calculatedReward = 1000 × 1.009^30 ≈ 1308.65 USDX</code>（完整复利值）</p>
+<p><strong>第二步：swap AE → USDX</strong></p>
+<p>将 calculatedReward 对应的 AE 代币 swap 为 USDX。</p>
+<p>假设实际 swap 得到 <code>usdxReceived = 1280 USDX</code>（含滑点损耗）。</p>
+<p><strong>第三步：计算利息部分</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>interestEarned = usdxReceived - principalAmount = 1280 - 1000 = 280 USDX
+</code></pre><blockquote>
+<p><strong>关键：教育基金和团队奖励只从利息部分（280 USDX）中计算，不动本金。</strong></p>
+</blockquote>
+<p><strong>第四步：从利息中扣除教育基金 + 团队奖励</strong></p>
+<table>
+<thead>
+<tr>
+<th>费用项</th>
+<th>计算</th>
+<th>金额</th>
+<th>去向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金</td>
+<td>280 × 5%</td>
+<td><strong>14.00 USDX</strong></td>
+<td>教育基金地址</td>
+</tr>
+<tr>
+<td>团队奖励池</td>
+<td>280 × 35%</td>
+<td><strong>98.00 USDX</strong></td>
+<td>推荐链分配</td>
+</tr>
+</tbody>
+</table>
+<p><strong>第五步：团队奖励分配（差级制）</strong></p>
+<p>同上，推荐链 Alice → Bob(V2) → Charlie(V1)：</p>
+<ol>
+<li><strong>Charlie（V1）</strong>：奖励率 3%，获得 280 × 3% = <strong>8.40 USDX</strong></li>
+<li><strong>Bob（V2）</strong>：差级奖励率 7% - 3% = 4%，获得 280 × 4% = <strong>11.20 USDX</strong></li>
+<li>实际分出：8.40 + 11.20 = <strong>19.60 USDX</strong></li>
+<li>剩余：98.00 - 19.60 = <strong>78.40 USDX</strong> → rootAddress</li>
+</ol>
+<p><strong>第六步：计算用户到手（扣费后）</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>userPayout = usdxReceived - 教育基金 - 团队奖励
+           = 1280 - 14.00 - 98.00
+           = 1168.00 USDX
+</code></pre><p><strong>第七步：赎回手续费</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>赎回手续费 = userPayout × 500 / 10000 = 1168.00 × 5% = 58.40 USDX
+</code></pre><blockquote>
+<p>同样，赎回手续费是额外从 AE 池 swap 出来发给 feeRecipient 的，不从 userPayout 中扣。</p>
+</blockquote>
+<p><strong>第八步：用户到手</strong></p>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>用户实际到手 = 1168.00 USDX（包含本金 + 扣费后利息）
+</code></pre><h3 id="62-解质押费用汇总">6.2 解质押费用汇总 </h3>
+<table>
+<thead>
+<tr>
+<th>去向</th>
+<th>金额</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育基金</td>
+<td>14.00</td>
+<td>利息的 5%</td>
+</tr>
+<tr>
+<td>Charlie（V1）</td>
+<td>8.40</td>
+<td>利息的 3%</td>
+</tr>
+<tr>
+<td>Bob（V2）</td>
+<td>11.20</td>
+<td>利息的 4%（差级）</td>
+</tr>
+<tr>
+<td>rootAddress</td>
+<td>78.40</td>
+<td>利息的 28%（团队奖励剩余）</td>
+</tr>
+<tr>
+<td>赎回手续费（feeRecipient）</td>
+<td>58.40</td>
+<td>userPayout 的 5%（额外 swap）</td>
+</tr>
+<tr>
+<td><strong>用户到手</strong></td>
+<td><strong>1168.00</strong></td>
+<td>本金 + 利息 - 教育基金 - 团队奖励</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-测试验证点">6.3 测试验证点 </h3>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认必须在锁仓期满后才能 unstake（否则 revert <code>StakingPeriodNotMet</code>）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认复利计算正确：<code>1000 × 1.009^30</code></li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 <code>interestEarned = usdxReceived - principalAmount</code></li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认教育基金 = interestEarned × 5%</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认团队奖励 = interestEarned × 35%</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认团队奖励按差级制分配</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 userPayout = usdxReceived - 教育基金 - 团队奖励</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认赎回手续费 = userPayout × 5%，转给 feeRecipient</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认用户收到 userPayout</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 AE 代币被 recycle</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认质押记录 status 变为 true</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 sAE 余额减少</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 teamTotalInvestValue 被正确更新（减少本金）</li>
+</ul>
+<hr>
+<h2 id="七-团队奖励差级制详解">七、团队奖励差级制详解 </h2>
+<h3 id="71-等级体系">7.1 等级体系 </h3>
+<p>用户的有效等级 = min(团队KPI等级, 个人质押等级)</p>
+<p><strong>团队 KPI 等级门槛：</strong></p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>团队总投资额门槛</th>
+<th>奖励率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>3,000 USDX</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>10,000 USDX</td>
+<td>7%</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>30,000 USDX</td>
+<td>11%</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>100,000 USDX</td>
+<td>15%</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>300,000 USDX</td>
+<td>19%</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>1,000,000 USDX</td>
+<td>23%</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>3,000,000 USDX</td>
+<td>27%</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>10,000,000 USDX</td>
+<td>31%</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>30,000,000 USDX</td>
+<td>35%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>个人质押等级门槛：</strong></p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>个人质押额门槛</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>100 USDX</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>300 USDX</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>600 USDX</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>1,000 USDX</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>3,000 USDX</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>6,000 USDX</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>10,000 USDX</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>15,000 USDX</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>20,000 USDX</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-差级分配示例">7.2 差级分配示例 </h3>
+<p>假设利息 = 100 USDX，团队奖励池 = 100 × 35% = 35 USDX</p>
+<p>推荐链（从用户往上）：Alice → D(V1) → E(V0) → F(V3) → G(V2) → H(V5)</p>
+<p><strong>遍历分配过程：</strong></p>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>成员</th>
+<th>等级</th>
+<th>该等级奖励率</th>
+<th>已累计率</th>
+<th>差级奖励率</th>
+<th>获得金额</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>D</td>
+<td>V1</td>
+<td>3%</td>
+<td>0%</td>
+<td>3%</td>
+<td>100 × 3% = 3.00</td>
+</tr>
+<tr>
+<td>2</td>
+<td>E</td>
+<td>V0</td>
+<td>—</td>
+<td>3%</td>
+<td>跳过（V0 无奖励）</td>
+<td>0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>F</td>
+<td>V3</td>
+<td>11%</td>
+<td>3%</td>
+<td>11%-3% = 8%</td>
+<td>100 × 8% = 8.00</td>
+</tr>
+<tr>
+<td>4</td>
+<td>G</td>
+<td>V2</td>
+<td>7%</td>
+<td>11%</td>
+<td>跳过（7% &lt; 已累计11%）</td>
+<td>0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>H</td>
+<td>V5</td>
+<td>19%</td>
+<td>11%</td>
+<td>19%-11% = 8%</td>
+<td>100 × 8% = 8.00</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>实际分出：3.00 + 8.00 + 8.00 = <strong>19.00 USDX</strong></li>
+<li>剩余：35.00 - 19.00 = <strong>16.00 USDX</strong> → rootAddress</li>
+</ul>
+<p><strong>关键规则：</strong></p>
+<ol>
+<li>每个等级只有第一个遇到的成员获得奖励</li>
+<li>奖励率 = 当前等级费率 - 已累计费率（差级）</li>
+<li>如果当前等级费率 ≤ 已累计费率，该成员不获得奖励</li>
+<li>未分配完的部分转给 rootAddress</li>
+</ol>
+<h3 id="73-测试验证点">7.3 测试验证点 </h3>
+<ul>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认 V0 等级成员不获得奖励</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认同等级只有第一个成员获得奖励（后续同等级被跳过）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认低于已累计费率的成员不获得奖励（如上例 G）</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认无推荐链时，全部 35% 转给 rootAddress</li>
+<li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox"> 确认差级计算正确</li>
+</ul>
+<hr>
+<h2 id="八-特殊场景测试">八、特殊场景测试 </h2>
+<h3 id="81-无推荐人的情况">8.1 无推荐人的情况 </h3>
+<p>如果用户没有推荐链（referralChain 为空）：</p>
+<ul>
+<li>教育基金 5% → 教育基金地址</li>
+<li>团队奖励 35% → 全部转给 rootAddress</li>
+<li>赎回手续费 5% → feeRecipient</li>
+<li>用户到手 = usdxReceived × 60%</li>
+</ul>
+<h3 id="82-多次领息后再解质押">8.2 多次领息后再解质押 </h3>
+<ul>
+<li>第 10 天领息一次，第 20 天领息一次，第 30 天解质押</li>
+<li><code>withdrawInterest</code> 记录已领取的利息</li>
+<li>但 <strong>unstake 时是独立计算的</strong>：unstake 返回的是完整的 <code>calculatedReward</code>（本金+全部复利），不扣除已领取的利息</li>
+<li>已领利息通过 <code>withdrawnInterest</code> mapping 追踪，但不影响 unstake 的计算</li>
+</ul>
+<blockquote>
+<p><strong>测试重点</strong>：确认 unstake 的 calculatedReward 是完整复利值，验证系统资金是否充足覆盖。</p>
+</blockquote>
+<h3 id="83-到期前尝试解质押">8.3 到期前尝试解质押 </h3>
+<ul>
+<li>调用 <code>unstake()</code> 应 revert，错误码 <code>StakingPeriodNotMet</code></li>
+<li>但可以调用 <code>withdrawInterest()</code> 领取利息</li>
+</ul>
+<h3 id="84-7天档限制">8.4 7天档限制 </h3>
+<ul>
+<li>第一次质押 Index 0（7天档）：成功</li>
+<li>第二次质押 Index 0：revert "7-day stake can only be used once"</li>
+<li>Owner 可以调用 <code>reset7DayStakeUsage(user)</code> 重置</li>
+</ul>
+<h3 id="85-质押金额限制">8.5 质押金额限制 </h3>
+<ul>
+<li>低于 100 USDX：revert <code>BelowMinStakeAmount</code></li>
+<li>超过 <code>maxStakeAmount()</code>（动态，受池子 1% 限制）：revert <code>ExceedsMaxStakeAmount</code></li>
+<li>用户总质押超过 10,000 USDX：revert <code>ExceedsUserTotalStakeLimit</code></li>
+</ul>
+<hr>
+<h2 id="九-资金流向总览图">九、资金流向总览图 </h2>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>质押时 (stake)
+═══════════════════════════════════════════
+用户 1000 USDX
+    │
+    ├─ 500 USDX ──→ Swap 为 AE ──→ AE代币收 3% 买入税
+    │                                  ├─ 0.5% 燃烧
+    │                                  └─ 2.5% 流动性
+    │
+    └─ 500 USDX ──┐
+                   ├──→ 添加 AE/USDX 流动性 ──→ LP 锁死(address(0))
+    swap得到的AE ──┘
+
+
+领息/解质押时 (withdrawInterest / unstake)
+═══════════════════════════════════════════
+AE 池 Swap 出 USDX (= usdxReceived)
+    │
+    │  ┌─ 利息部分 = usdxReceived - 本金(unstake时)
+    │  │           = usdxReceived(领息时)
+    │  │
+    ├──┤  5% ──→ 教育基金地址
+    │  │
+    │  │  35% ──→ 团队奖励池
+    │  │            ├─ 推荐链成员（差级制分配）
+    │  │            └─ 剩余 → rootAddress
+    │  │
+    │  └─ 60% ──→ 用户到手(userPayout)
+    │
+    └──→ 额外 swap：userPayout × 5% ──→ feeRecipient (赎回手续费)
+</code></pre><hr>
+<h2 id="十-事件events检查清单">十、事件（Events）检查清单 </h2>
+<p>测试时可监听以下事件确认费用分配正确：</p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>触发时机</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FirstTime7DayStakeUsed</code></td>
+<td>首次使用7天档</td>
+<td>user, timestamp</td>
+</tr>
+<tr>
+<td><code>RedemptionFeeCollected</code></td>
+<td>领息/解质押</td>
+<td>user, stakeIndex, aeAmount, usdxAmount, feeRecipient</td>
+</tr>
+<tr>
+<td><code>TeamRewardDistributionCompleted</code></td>
+<td>领息/解质押</td>
+<td>interest, totalFee, totalDistributed, marketingAmount</td>
+</tr>
+<tr>
+<td><code>StrictDifferentialRewardPaid</code></td>
+<td>每个推荐人获得奖励时</td>
+<td>recipient, tier, actualRate, reward, prevRate, tierRate</td>
+</tr>
+<tr>
+<td><code>InterestWithdrawn</code></td>
+<td>领息</td>
+<td>user, stakeIndex, interest, usdxReceived, educationFund, teamFee, userPayout</td>
+</tr>
+<tr>
+<td><code>WithdrawalCompleted</code></td>
+<td>解质押</td>
+<td>完整的提取记录</td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>
