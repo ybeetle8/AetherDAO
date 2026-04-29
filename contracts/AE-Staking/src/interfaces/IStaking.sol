@@ -744,6 +744,6 @@ interface IStaking {
 
     /// @notice 获取用户已领取的质押净利息累计（扣费后实际到账，不含本金）
     /// @param user 用户地址
-    /// @return netInterest 净利息累计 = totalClaimedStakingReward - totalPrincipalReturned
+    /// @return netInterest 净利息累计（独立追踪，不受赎回手续费对本金的影响）
     function getClaimedNetInterest(address user) external view returns (uint256 netInterest);
 }

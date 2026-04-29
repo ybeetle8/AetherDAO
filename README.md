@@ -58,10 +58,10 @@ npx hardhat run scripts/sendBnbUsdc.js --network localhost
 # 监听事件测试代码（打开后会打印所有事件，后端只需事件：BindReferral）
 npx hardhat run scripts/monitorStakingEvents.js --network localhost
 
-# 跳转天数
+# 跳转7天数
 DAYS=7 npx hardhat run scripts/timeTravel.js --network localhost
 
-# 跳转小时
+# 跳转12小时
 HOURS=12 npx hardhat run scripts/timeTravel.js --network localhost
 
 ```

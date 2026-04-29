@@ -198,6 +198,9 @@ abstract contract StakingBase is Ownable, IStaking {
     /// @notice 用户累计已退还本金 (unstake 时退还的本金之和)
     mapping(address => uint256) public totalPrincipalReturned;
 
+    /// @notice 用户累计已领取的净利息 (扣除教育基金+团队奖励+赎回手续费后的纯利息到账金额)
+    mapping(address => uint256) public totalClaimedNetInterest;
+
     // Events - Only define events not in IStaking interface
     event MarketingAddressUpdated(
         address indexed oldAddress,
@@ -356,6 +359,11 @@ abstract contract StakingBase is Ownable, IStaking {
 
             // 累计已退还本金
             totalPrincipalReturned[msg.sender] += principalAmount;
+
+            // 累计净利息（利息扣除教育基金+团队奖励后，再按比例扣赎回手续费）
+            uint256 interestAfterEduTeam = interestEarned - educationFund - teamFee;
+            uint256 interestRedemptionFee = (interestAfterEduTeam * REDEMPTION_FEE_RATE) / BASIS_POINTS_DENOMINATOR;
+            totalClaimedNetInterest[msg.sender] += interestAfterEduTeam - interestRedemptionFee;
         }
 
         AE.recycle(aeTokensUsed);
@@ -445,6 +453,9 @@ abstract contract StakingBase is Ownable, IStaking {
         // 累计用户质押收益
         totalClaimedStakingReward[user] += userPayout;
         emit UserStakingRewardUpdated(user, userPayout, totalClaimedStakingReward[user]);
+
+        // 累计净利息（withdrawInterest 的 userPayout 全部是纯利息，无本金）
+        totalClaimedNetInterest[user] += userPayout;
 
         // Recycle AE tokens
         AE.recycle(aeTokensUsed);
@@ -586,11 +597,9 @@ abstract contract StakingBase is Ownable, IStaking {
 
     /// @notice 获取用户已领取的质押净利息累计（扣费后实际到账，不含本金）
     /// @param user 用户地址
-    /// @return netInterest 净利息累计 = totalClaimedStakingReward - totalPrincipalReturned
+    /// @return netInterest 净利息累计（独立追踪，不受赎回手续费对本金的影响）
     function getClaimedNetInterest(address user) external view returns (uint256 netInterest) {
-        uint256 stakingReward = totalClaimedStakingReward[user];
-        uint256 principalReturned = totalPrincipalReturned[user];
-        netInterest = stakingReward > principalReturned ? stakingReward - principalReturned : 0;
+        netInterest = totalClaimedNetInterest[user];
     }
 
     /// @notice 获取用户所有质押订单的完整信息
