@@ -58,6 +58,10 @@ npx hardhat run scripts/sendBnbUsdc.js --network localhost
 # 监听事件测试代码（打开后会打印所有事件，后端只需事件：BindReferral）
 npx hardhat run scripts/monitorStakingEvents.js --network localhost
 
+# 查看各种地址的 usdc 数量
+npx hardhat run scripts/checkAddressUsdc.js --network localhost
+
+
 # 跳转7天数
 DAYS=7 npx hardhat run scripts/timeTravel.js --network localhost
 

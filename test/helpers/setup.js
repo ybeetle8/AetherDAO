@@ -41,10 +41,23 @@ async function getContracts(deployment) {
 }
 
 /**
+ * 为指定地址设置 BNB（原生代币）余额，用于支付 gas
+ */
+async function setBalance(address, amount) {
+  await hre.network.provider.send("hardhat_setBalance", [
+    address,
+    hre.ethers.toBeHex(amount),
+  ]);
+}
+
+/**
  * 为指定地址设置 USDX 余额
  * 使用 solidityPackedKeccak256 + slot 1（BSC USDX 代理合约）
+ * 同时自动设置 BNB 余额（1 BNB）用于支付 gas
  */
 async function setUSDXBalance(address, amount) {
+  // 设置 BNB 余额用于 gas
+  await setBalance(address, hre.ethers.parseEther("1"));
   const balanceSlot = hre.ethers.solidityPackedKeccak256(
     ["uint256", "uint256"],
     [address, 1]
@@ -132,6 +145,7 @@ function assertApproxEq(actual, expected, tolerance, message) {
 module.exports = {
   loadDeployment,
   getContracts,
+  setBalance,
   setUSDXBalance,
   approveUSDX,
   bindReferral,

@@ -3,7 +3,7 @@ const hre = require("hardhat");
 // ============ 配置区域（修改这里） ============
 //const TARGET_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 修改为你的钱包地址
 
-const TARGET_ADDRESS = "0x585746096D08F724B0E4122963a26956A222E420"; // 刘
+const TARGET_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 刘
 const BNB_AMOUNT = "10000";    // 发送 BNB 数量
 const USDC_AMOUNT = "1000000"; // 发送 USDC 数量
 // =============================================
