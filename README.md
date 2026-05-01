@@ -19,7 +19,7 @@
 可在 MetaMask 钱包中添加以下 RPC（记得添加代币 SYI 与 USDT）：
 
 - **网络名称**: BSChome
-- **RPC URL**: http://47.109.157.92:8545  
+- **RPC URL**: http://47.109.157.92:8545    ssl域名: https://9.ai-hello.cn
 - **Chain ID**: 10056
 - **币名**: tBNB（BNB 的别名）
 
