@@ -311,8 +311,11 @@ abstract contract StakingBase is Ownable, IStaking {
 
         uint256 userPayout = usdxReceived - educationFund - teamFee;
 
-        // Calculate and collect 5% redemption fee from userPayout
-        uint256 expectedRedemptionFeeUSDX = (userPayout * REDEMPTION_FEE_RATE) /
+        // Calculate and collect 5% redemption fee from interest only (not principal)
+        uint256 interestAfterFees = interestEarned > (educationFund + teamFee)
+            ? interestEarned - educationFund - teamFee
+            : 0;
+        uint256 expectedRedemptionFeeUSDX = (interestAfterFees * REDEMPTION_FEE_RATE) /
             BASIS_POINTS_DENOMINATOR;
 
         if (expectedRedemptionFeeUSDX > 0 && feeRecipient != address(0)) {

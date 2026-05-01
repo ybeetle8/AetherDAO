@@ -20,7 +20,14 @@ npx hardhat run test/staking/stake-basic.test.js --network localhost
 
 # 第二部分：测试项 1.10~1.15（流动性、LP烧毁、累计、事件）
 npx hardhat run test/staking/stake-advanced.test.js --network localhost
+
+npx hardhat run test/staking/stake-redeem-balance.test.js --network localhost
+
+
 ```
+
+
+
 
 ## 注意事项
 
