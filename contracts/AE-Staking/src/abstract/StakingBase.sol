@@ -405,8 +405,14 @@ abstract contract StakingBase is Ownable, IStaking {
 
         require(availableInterest > 0, "No interest available to withdraw");
 
-        // [修复 P0] 重置复利起算时间为当前时间，使下一段复利从本金重新开始
-        stakeRecord.compoundStartTime = uint40(block.timestamp);
+        // [修复 P0] 重置复利起算时间，对齐到复利周期边界，避免整除截断丢失一天
+        uint256 timeUnit = getCompoundTimeUnit();
+        uint40 prevCompoundStart = stakeRecord.compoundStartTime != 0
+            ? stakeRecord.compoundStartTime
+            : stakeRecord.stakeTime;
+        uint256 elapsed = block.timestamp - prevCompoundStart;
+        uint256 fullPeriods = elapsed / timeUnit;
+        stakeRecord.compoundStartTime = prevCompoundStart + uint40(fullPeriods * timeUnit);
 
         // Swap AE for USDX to pay the interest
         (uint256 usdxReceived, uint256 aeTokensUsed) = _swapAEForReward(
