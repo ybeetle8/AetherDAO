@@ -72,13 +72,13 @@ HOURS=12 npx hardhat run scripts/timeTravel.js --network localhost
 
 ### 交易所买卖测试
 
-用于测试在 PancakeSwap 上买入/卖出 AE 代币。脚本会以固定地址执行交易，默认地址在脚本顶部的配置区域可修改。
+用于测试在 PancakeSwap 上买入/卖出 AE 代币。使用助记词派生的账户执行交易，USDX 不足时会自动补充。
 
 ```bash
-# 买入 AE（默认用 1000 USDX 买入，可在脚本顶部修改金额和地址）
+# 买入 AE（默认用 accounts[5] 花 1000 USDX 买入）
 npx hardhat run scripts/testSwapBuy.js --network localhost
 
-# 卖出 AE（默认卖出全部 AE，可在脚本顶部修改数量和地址）
+# 卖出 AE（默认用 accounts[5] 卖出全部 AE）
 npx hardhat run scripts/testSwapSell.js --network localhost
 
 # 先买后卖（连续执行）
@@ -87,7 +87,7 @@ npx hardhat run scripts/testSwapSell.js --network localhost
 ```
 
 配置说明（打开脚本修改顶部的配置区域）：
-- `BUYER_ADDRESS` / `SELLER_ADDRESS`: 交易者钱包地址
+- `ACCOUNT_INDEX`: 使用助记词的第几个账户（0 是 deployer，建议用 1-19）
 - `BUY_USDX_AMOUNT`: 用多少 USDX 买入 AE
 - `SELL_AE_AMOUNT`: 卖出多少 AE（留空则卖出全部）
 

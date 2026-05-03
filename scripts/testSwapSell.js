@@ -6,7 +6,7 @@ const deploymentConfig = require("../ae-deployment-config.json");
 const deployment = require("../ae-deployment.json");
 
 // ============ 配置区域（修改这里） ============
-const SELLER_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 卖出者钱包地址
+const ACCOUNT_INDEX = 5; // 使用助记词的第几个账户（需要和买入时用的同一个账户）
 const SELL_AE_AMOUNT = ""; // 卖出 AE 数量，留空则卖出全部
 // =============================================
 
@@ -25,30 +25,26 @@ async function main() {
     console.log("  AE 代币卖出测试");
     console.log("=".repeat(60));
 
-    // 安全检查
-    if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
-        throw new Error(`禁止在 ${hre.network.name} 网络上运行！仅限 localhost 或 hardhat。`);
+    // 获取签名者账户
+    const signers = await ethers.getSigners();
+    if (ACCOUNT_INDEX >= signers.length) {
+        throw new Error(`账户索引 ${ACCOUNT_INDEX} 超出范围，可用: 0-${signers.length - 1}`);
     }
+    const seller = signers[ACCOUNT_INDEX];
+    const sellerAddress = seller.address;
 
     console.log(`\n配置:`);
-    console.log(`  卖出者地址: ${SELLER_ADDRESS}`);
+    console.log(`  卖出者地址: ${sellerAddress} (accounts[${ACCOUNT_INDEX}])`);
     console.log(`  AE 代币: ${AE_ADDRESS}`);
     console.log(`  交易对: ${PAIR_ADDRESS}`);
     console.log(`  Router: ${ROUTER_ADDRESS}`);
 
-    // 使用 hardhat 的 impersonateAccount 来模拟该地址操作
-    await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [SELLER_ADDRESS],
-    });
-    const seller = await ethers.getSigner(SELLER_ADDRESS);
-
     // 确保卖出者有足够的 BNB 作为 gas
-    const bnbBalance = await ethers.provider.getBalance(SELLER_ADDRESS);
+    const bnbBalance = await ethers.provider.getBalance(sellerAddress);
     if (bnbBalance < ethers.parseEther("1")) {
         console.log(`\n为卖出者补充 BNB...`);
         await hre.network.provider.send("hardhat_setBalance", [
-            SELLER_ADDRESS,
+            sellerAddress,
             ethers.toBeHex(ethers.parseEther("100")),
         ]);
         console.log(`  已设置 100 BNB`);
@@ -71,9 +67,9 @@ async function main() {
     const pair = await ethers.getContractAt("IUniswapV2Pair", PAIR_ADDRESS);
 
     // 检查 AE 余额
-    const aeBalance = await ae.balanceOf(SELLER_ADDRESS);
+    const aeBalance = await ae.balanceOf(sellerAddress);
     if (aeBalance === 0n) {
-        throw new Error(`卖出者地址 ${SELLER_ADDRESS} 没有 AE 代币！请先运行 testSwapBuy.js 买入。`);
+        throw new Error(`账户 accounts[${ACCOUNT_INDEX}] (${sellerAddress}) 没有 AE 代币！请先运行 testSwapBuy.js 买入。`);
     }
 
     // 确定卖出数量
@@ -85,7 +81,7 @@ async function main() {
         }
     } else {
         sellAmount = aeBalance; // 卖出全部
-        console.log(`\n未指定卖出数量，将卖出全部 AE`);
+        console.log(`\n未指定卖出数量，将卖出全部 AE: ${formatToken(aeBalance, 18, "AE")}`);
     }
 
     // 查看流动性池状态
@@ -102,10 +98,10 @@ async function main() {
     console.log(`  当前价格: 1 AE = ${formatToken(price, 18, "USDX")}`);
 
     // 卖出前余额
-    const usdxBefore = await usdx.balanceOf(SELLER_ADDRESS);
-    const aeBefore = await ae.balanceOf(SELLER_ADDRESS);
-    const investmentBefore = await ae.userInvestment(SELLER_ADDRESS);
-    const isWhitelisted = await ae.feeWhitelisted(SELLER_ADDRESS);
+    const usdxBefore = await usdx.balanceOf(sellerAddress);
+    const aeBefore = await ae.balanceOf(sellerAddress);
+    const investmentBefore = await ae.userInvestment(sellerAddress);
+    const isWhitelisted = await ae.feeWhitelisted(sellerAddress);
     const marketingFeeBefore = await ae.amountMarketingFee();
     const lpFeeBefore = await ae.amountLPFee();
 
@@ -124,27 +120,24 @@ async function main() {
 
     // 授权 Router
     console.log(`\n授权 Router 使用 AE...`);
-    const aeSeller = ae.connect(seller);
-    await aeSeller.approve(ROUTER_ADDRESS, sellAmount);
+    await ae.connect(seller).approve(ROUTER_ADDRESS, sellAmount);
 
     // 执行卖出
     console.log(`执行卖出交易...`);
-    const routerSeller = router.connect(seller);
     const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-
-    const tx = await routerSeller.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+    const tx = await router.connect(seller).swapExactTokensForTokensSupportingFeeOnTransferTokens(
         sellAmount,
         0, // 不设最小输出（测试用）
         sellPath,
-        SELLER_ADDRESS,
+        sellerAddress,
         deadline
     );
     const receipt = await tx.wait();
 
     // 卖出后余额
-    const usdxAfter = await usdx.balanceOf(SELLER_ADDRESS);
-    const aeAfter = await ae.balanceOf(SELLER_ADDRESS);
-    const investmentAfter = await ae.userInvestment(SELLER_ADDRESS);
+    const usdxAfter = await usdx.balanceOf(sellerAddress);
+    const aeAfter = await ae.balanceOf(sellerAddress);
+    const investmentAfter = await ae.userInvestment(sellerAddress);
     const marketingFeeAfter = await ae.amountMarketingFee();
     const lpFeeAfter = await ae.amountLPFee();
 
@@ -163,7 +156,9 @@ async function main() {
     console.log(`\n交易摘要:`);
     console.log(`  卖出: ${formatToken(aeSold, 18, "AE")}`);
     console.log(`  收到: ${formatToken(usdxReceived, 18, "USDX")}`);
-    console.log(`  实际价格: 1 AE = ${formatToken(usdxReceived * ethers.parseEther("1") / aeSold, 18, "USDX")}`);
+    if (aeSold > 0n) {
+        console.log(`  实际价格: 1 AE = ${formatToken(usdxReceived * ethers.parseEther("1") / aeSold, 18, "USDX")}`);
+    }
 
     if (!isWhitelisted) {
         console.log(`\n费用详情:`);
@@ -188,12 +183,6 @@ async function main() {
     console.log(`  USDX 储备: ${formatToken(usdxReserveAfter, 18, "USDX")}`);
     console.log(`  当前价格: 1 AE = ${formatToken(priceAfter, 18, "USDX")}`);
     console.log(`  价格变动: ${formatToken(price, 18)} -> ${formatToken(priceAfter, 18)} USDX`);
-
-    // 停止模拟
-    await hre.network.provider.request({
-        method: "hardhat_stopImpersonatingAccount",
-        params: [SELLER_ADDRESS],
-    });
 
     console.log(`\n` + "=".repeat(60));
     console.log(`  卖出测试完成!`);

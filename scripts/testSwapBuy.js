@@ -6,7 +6,7 @@ const deploymentConfig = require("../ae-deployment-config.json");
 const deployment = require("../ae-deployment.json");
 
 // ============ 配置区域（修改这里） ============
-const BUYER_ADDRESS = "0x11C710888b00B90901ede49C08DA5B3B66C9dc76"; // 买入者钱包地址
+const ACCOUNT_INDEX = 5; // 使用助记词的第几个账户（0 是 deployer，建议用 1-19）
 const BUY_USDX_AMOUNT = "1000"; // 用多少 USDX 买入 AE
 // =============================================
 
@@ -25,31 +25,27 @@ async function main() {
     console.log("  AE 代币买入测试");
     console.log("=".repeat(60));
 
-    // 安全检查
-    if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
-        throw new Error(`禁止在 ${hre.network.name} 网络上运行！仅限 localhost 或 hardhat。`);
+    // 获取签名者账户
+    const signers = await ethers.getSigners();
+    if (ACCOUNT_INDEX >= signers.length) {
+        throw new Error(`账户索引 ${ACCOUNT_INDEX} 超出范围，可用: 0-${signers.length - 1}`);
     }
+    const buyer = signers[ACCOUNT_INDEX];
+    const buyerAddress = buyer.address;
 
     console.log(`\n配置:`);
-    console.log(`  买入者地址: ${BUYER_ADDRESS}`);
+    console.log(`  买入者地址: ${buyerAddress} (accounts[${ACCOUNT_INDEX}])`);
     console.log(`  买入金额: ${BUY_USDX_AMOUNT} USDX`);
     console.log(`  AE 代币: ${AE_ADDRESS}`);
     console.log(`  交易对: ${PAIR_ADDRESS}`);
     console.log(`  Router: ${ROUTER_ADDRESS}`);
 
-    // 使用 hardhat 的 impersonateAccount 来模拟该地址操作
-    await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [BUYER_ADDRESS],
-    });
-    const buyer = await ethers.getSigner(BUYER_ADDRESS);
-
     // 确保买入者有足够的 BNB 作为 gas
-    const bnbBalance = await ethers.provider.getBalance(BUYER_ADDRESS);
+    const bnbBalance = await ethers.provider.getBalance(buyerAddress);
     if (bnbBalance < ethers.parseEther("1")) {
         console.log(`\n为买入者补充 BNB...`);
         await hre.network.provider.send("hardhat_setBalance", [
-            BUYER_ADDRESS,
+            buyerAddress,
             ethers.toBeHex(ethers.parseEther("100")),
         ]);
         console.log(`  已设置 100 BNB`);
@@ -71,20 +67,19 @@ async function main() {
 
     // 确保买入者有足够的 USDX
     const buyAmount = ethers.parseEther(BUY_USDX_AMOUNT);
-    const currentUsdx = await usdx.balanceOf(BUYER_ADDRESS);
+    const currentUsdx = await usdx.balanceOf(buyerAddress);
     if (currentUsdx < buyAmount) {
-        console.log(`\n买入者 USDX 不足，正在补充...`);
-        const needed = buyAmount - currentUsdx + ethers.parseEther("100"); // 多补充一点
-        const slotsToTry = [9, 0, 1, 2, 51];
-        const newBalance = currentUsdx + needed;
+        console.log(`\n买入者 USDX 不足 (当前: ${formatToken(currentUsdx, 18)})，正在补充...`);
+        const newBalance = buyAmount + ethers.parseEther("100"); // 多补充一点
         const balanceHex = ethers.zeroPadValue(ethers.toBeHex(newBalance), 32);
+        const slotsToTry = [9, 0, 1, 2, 51];
         let success = false;
 
         for (const slot of slotsToTry) {
             const balanceSlot = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["address", "uint256"],
-                    [BUYER_ADDRESS, slot]
+                    [buyerAddress, slot]
                 )
             );
             await hre.network.provider.send("hardhat_setStorageAt", [
@@ -92,7 +87,7 @@ async function main() {
                 balanceSlot,
                 balanceHex,
             ]);
-            const balance = await usdx.balanceOf(BUYER_ADDRESS);
+            const balance = await usdx.balanceOf(buyerAddress);
             if (balance >= buyAmount) {
                 console.log(`  已通过存储槽位 ${slot} 补充 USDX`);
                 success = true;
@@ -118,10 +113,10 @@ async function main() {
     console.log(`  当前价格: 1 AE = ${formatToken(price, 18, "USDX")}`);
 
     // 买入前余额
-    const usdxBefore = await usdx.balanceOf(BUYER_ADDRESS);
-    const aeBefore = await ae.balanceOf(BUYER_ADDRESS);
-    const investmentBefore = await ae.userInvestment(BUYER_ADDRESS);
-    const isWhitelisted = await ae.feeWhitelisted(BUYER_ADDRESS);
+    const usdxBefore = await usdx.balanceOf(buyerAddress);
+    const aeBefore = await ae.balanceOf(buyerAddress);
+    const investmentBefore = await ae.userInvestment(buyerAddress);
+    const isWhitelisted = await ae.feeWhitelisted(buyerAddress);
 
     console.log(`\n买入前状态:`);
     console.log(`  USDX 余额: ${formatToken(usdxBefore, 18, "USDX")}`);
@@ -137,27 +132,24 @@ async function main() {
 
     // 授权 Router
     console.log(`\n授权 Router 使用 USDX...`);
-    const usdxBuyer = usdx.connect(buyer);
-    await usdxBuyer.approve(ROUTER_ADDRESS, buyAmount);
+    await usdx.connect(buyer).approve(ROUTER_ADDRESS, buyAmount);
 
     // 执行买入
     console.log(`执行买入交易...`);
-    const routerBuyer = router.connect(buyer);
     const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-
-    const tx = await routerBuyer.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+    const tx = await router.connect(buyer).swapExactTokensForTokensSupportingFeeOnTransferTokens(
         buyAmount,
         0, // 不设最小输出（测试用）
         path,
-        BUYER_ADDRESS,
+        buyerAddress,
         deadline
     );
     const receipt = await tx.wait();
 
     // 买入后余额
-    const usdxAfter = await usdx.balanceOf(BUYER_ADDRESS);
-    const aeAfter = await ae.balanceOf(BUYER_ADDRESS);
-    const investmentAfter = await ae.userInvestment(BUYER_ADDRESS);
+    const usdxAfter = await usdx.balanceOf(buyerAddress);
+    const aeAfter = await ae.balanceOf(buyerAddress);
+    const investmentAfter = await ae.userInvestment(buyerAddress);
 
     const usdxSpent = usdxBefore - usdxAfter;
     const aeReceived = aeAfter - aeBefore;
@@ -179,12 +171,6 @@ async function main() {
         const feeRate = feeAmount * 10000n / expectedAE;
         console.log(`  扣费: ${formatToken(feeAmount, 18, "AE")} (${Number(feeRate) / 100}%)`);
     }
-
-    // 停止模拟
-    await hre.network.provider.request({
-        method: "hardhat_stopImpersonatingAccount",
-        params: [BUYER_ADDRESS],
-    });
 
     console.log(`\n` + "=".repeat(60));
     console.log(`  买入测试完成!`);
