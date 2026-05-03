@@ -7,10 +7,10 @@
     "marketingAddress": "0x1234567890123456789012345678901234567890",
     "rootAddress": "0x2345678901234567890123456789012345678901",
     "feeRecipient": "0x0000000000000000000000000000000000000001",
-    "buyTaxNodeRewardAddress": "0x06Ba6DA5d1942DA184ad3E521bC51dfF32D721d9",
-    "buyTaxCommunityRewardAddress": "0xeE1285c96E77f2E8CB9C38b66A0BB51b2fCE5537",
+    "buyTaxNodeRewardAddress": "0x4ecc22c6de06d87380d50df56a3a5f718efdfe50",
+    "buyTaxCommunityRewardAddress": "0x295d1ea71f5a1c8914ca2fbc0ad6f5557154e836",
     "marketingFundAddress": "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17",
-    "weeklyTop15RewardAddress": "0x82B3B6a20d88d2d8B607B64876885259544DF591",
+    "weeklyTop15RewardAddress": "0x234121c1b952728b0f12b61fb7c26d234f5c57d4",
     "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB",
     "educationFundAddress": "0x2DC1e6D6Ae7b8Be231c54f0de2Ede2973550fBBa",
     "nodeRewardAllocationAddress": "0x8234567890123456789012345678901234567890"
