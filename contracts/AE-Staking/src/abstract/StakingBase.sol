@@ -356,17 +356,18 @@ abstract contract StakingBase is Ownable, IStaking {
             totalDividendsDistributed += userPayout;
             emit GlobalDividendUpdated(userPayout, totalDividendsDistributed);
 
-            // 累计用户质押收益
-            totalClaimedStakingReward[msg.sender] += userPayout;
-            emit UserStakingRewardUpdated(msg.sender, userPayout, totalClaimedStakingReward[msg.sender]);
-
             // 累计已退还本金
             totalPrincipalReturned[msg.sender] += principalAmount;
 
             // 累计净利息（利息扣除教育基金+团队奖励后，再按比例扣赎回手续费）
             uint256 interestAfterEduTeam = interestEarned - educationFund - teamFee;
             uint256 interestRedemptionFee = (interestAfterEduTeam * REDEMPTION_FEE_RATE) / BASIS_POINTS_DENOMINATOR;
-            totalClaimedNetInterest[msg.sender] += interestAfterEduTeam - interestRedemptionFee;
+            uint256 netInterest = interestAfterEduTeam - interestRedemptionFee;
+            totalClaimedNetInterest[msg.sender] += netInterest;
+
+            // 累计用户质押收益（纯利息，不含本金）
+            totalClaimedStakingReward[msg.sender] += netInterest;
+            emit UserStakingRewardUpdated(msg.sender, netInterest, totalClaimedStakingReward[msg.sender]);
         }
 
         AE.recycle(aeTokensUsed);
