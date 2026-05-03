@@ -393,23 +393,19 @@ abstract contract StakingBase is Ownable, IStaking {
         IStaking.Record storage stakeRecord = cord[stakeIndex];
         if (stakeRecord.status) revert AlreadyWithdrawn();
 
-        // Calculate total current value and interest
+        // [修复 P0] 计算从 compoundStartTime 到现在的复利利息
         uint256 totalCurrentValue = _calculateStakeReward(stakeRecord);
         uint256 principalAmount = stakeRecord.amount;
 
-        // Calculate available interest (total interest - already withdrawn)
-        uint256 totalInterest = totalCurrentValue > principalAmount
+        // 当前段利息 = 当前复利价值 - 本金
+        uint256 availableInterest = totalCurrentValue > principalAmount
             ? totalCurrentValue - principalAmount
-            : 0;
-        uint256 alreadyWithdrawn = withdrawnInterest[user][stakeIndex];
-        uint256 availableInterest = totalInterest > alreadyWithdrawn
-            ? totalInterest - alreadyWithdrawn
             : 0;
 
         require(availableInterest > 0, "No interest available to withdraw");
 
-        // Update withdrawn interest BEFORE external calls (Checks-Effects-Interactions)
-        withdrawnInterest[user][stakeIndex] = alreadyWithdrawn + availableInterest;
+        // [修复 P0] 重置复利起算时间为当前时间，使下一段复利从本金重新开始
+        stakeRecord.compoundStartTime = uint40(block.timestamp);
 
         // Swap AE for USDX to pay the interest
         (uint256 usdxReceived, uint256 aeTokensUsed) = _swapAEForReward(
@@ -1252,6 +1248,7 @@ abstract contract StakingBase is Ownable, IStaking {
         order.amount = _amount;
         order.status = false;
         order.stakeIndex = _stakeIndex;
+        order.compoundStartTime = uint40(block.timestamp);
 
         IStaking.Record[] storage cord = userStakeRecord[sender];
         uint256 stake_index = cord.length;
@@ -1284,14 +1281,9 @@ abstract contract StakingBase is Ownable, IStaking {
         if (user_record.status) revert AlreadyWithdrawn();
 
         amount = user_record.amount;
+        // [修复 P0] _calculateStakeReward 现在基于 compoundStartTime 计算，
+        // 只返回最近一次提息（或质押开始）以来的复利价值，无需再扣除 withdrawnInterest
         reward = _calculateStakeReward(user_record);
-
-        // [修复 C-02] 扣除已通过 withdrawInterest 提取的利息
-        uint256 alreadyWithdrawn = withdrawnInterest[sender][index];
-        if (alreadyWithdrawn > 0) {
-            require(reward > alreadyWithdrawn, "Reward calculation error");
-            reward -= alreadyWithdrawn;
-        }
 
         user_record.status = true;
 
@@ -1556,17 +1548,26 @@ abstract contract StakingBase is Ownable, IStaking {
         IStaking.Record storage stakeRecord
     ) private view returns (uint256 currentReward) {
         UD60x18 principalAmount = ud(stakeRecord.amount);
-        uint40 stakeStartTime = stakeRecord.stakeTime;
-        uint40 stakingDuration;
 
+        // [修复 P0] 使用 compoundStartTime 作为复利起算时间
+        // 向后兼容：compoundStartTime == 0 时回退到 stakeTime（兼容老质押记录）
+        uint40 compoundStart = stakeRecord.compoundStartTime != 0
+            ? stakeRecord.compoundStartTime
+            : stakeRecord.stakeTime;
+
+        uint40 stakingDuration;
         unchecked {
-            stakingDuration = uint40(block.timestamp) - stakeStartTime;
+            stakingDuration = uint40(block.timestamp) - compoundStart;
         }
 
-        stakingDuration = _min40(
-            stakingDuration,
-            uint40(getStakePeriod(stakeRecord.stakeIndex))
-        );
+        // 复利时长不超过从 compoundStart 到到期时间的剩余部分
+        uint40 maturityTime = stakeRecord.stakeTime + uint40(getStakePeriod(stakeRecord.stakeIndex));
+        if (uint40(block.timestamp) > maturityTime) {
+            // 已到期：复利最多算到到期时间
+            stakingDuration = maturityTime > compoundStart
+                ? maturityTime - compoundStart
+                : 0;
+        }
 
         if (stakingDuration == 0) {
             currentReward = UD60x18.unwrap(principalAmount);
@@ -1575,7 +1576,7 @@ abstract contract StakingBase is Ownable, IStaking {
 
             // Convert stakingDuration from seconds to the correct time unit (days for mainnet, minutes for testnet)
             uint256 compoundPeriods = stakingDuration / getCompoundTimeUnit();
-            
+
             UD60x18 compoundedAmount = principalAmount.mul(
                 baseInterestRate.powu(compoundPeriods)
             );
@@ -1907,18 +1908,13 @@ abstract contract StakingBase is Ownable, IStaking {
         IStaking.Record storage stakeRecord = cord[stakeIndex];
         if (stakeRecord.status) return 0; // Already fully withdrawn
 
-        // Calculate total current value and interest
+        // [修复 P0] _calculateStakeReward 现在基于 compoundStartTime 计算，
+        // 直接返回当前段的复利价值，利息 = 当前值 - 本金
         uint256 totalCurrentValue = _calculateStakeReward(stakeRecord);
         uint256 principalAmount = stakeRecord.amount;
 
-        // Calculate available interest
-        uint256 totalInterest = totalCurrentValue > principalAmount
+        availableInterest = totalCurrentValue > principalAmount
             ? totalCurrentValue - principalAmount
-            : 0;
-        uint256 alreadyWithdrawn = withdrawnInterest[user][stakeIndex];
-
-        availableInterest = totalInterest > alreadyWithdrawn
-            ? totalInterest - alreadyWithdrawn
             : 0;
     }
 

@@ -60,16 +60,18 @@ interface IStaking {
 
     /**
      * @notice Individual stake record structure
-     * @param stakeTime Timestamp when stake was created
+     * @param stakeTime Timestamp when stake was created (used for maturity check)
      * @param amount Principal amount staked (in USDX)
      * @param status Whether stake has been withdrawn (true = withdrawn)
      * @param stakeIndex Staking tier (0=7days/0.6% daily, 1=30days/0.9% daily, 2=90days/1.1% daily, 3=180days/1.5% daily, 4=365days/2% daily)
+     * @param compoundStartTime Timestamp from which compound interest is calculated (reset on each interest withdrawal; 0 means use stakeTime for backward compatibility)
      */
     struct Record {
         uint40 stakeTime;
         uint160 amount;
         bool status;
         uint8 stakeIndex;
+        uint40 compoundStartTime;
     }
 
     /**
