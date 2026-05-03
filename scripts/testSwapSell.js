@@ -58,11 +58,13 @@ async function main() {
             "function approve(address spender, uint256 amount) returns (bool)",
             "function userInvestment(address) view returns (uint256)",
             "function feeWhitelisted(address) view returns (bool)",
-            "function amountMarketingFee() view returns (uint256)",
-            "function amountLPFee() view returns (uint256)"
+            "function marketingFundAddress() view returns (address)",
+            "function DEAD_ADDRESS() view returns (address)"
         ],
         AE_ADDRESS
     );
+    const marketingFundAddr = await ae.marketingFundAddress();
+    const deadAddr = await ae.DEAD_ADDRESS();
     const router = await ethers.getContractAt("IUniswapV2Router02", ROUTER_ADDRESS);
     const pair = await ethers.getContractAt("IUniswapV2Pair", PAIR_ADDRESS);
 
@@ -102,8 +104,8 @@ async function main() {
     const aeBefore = await ae.balanceOf(sellerAddress);
     const investmentBefore = await ae.userInvestment(sellerAddress);
     const isWhitelisted = await ae.feeWhitelisted(sellerAddress);
-    const marketingFeeBefore = await ae.amountMarketingFee();
-    const lpFeeBefore = await ae.amountLPFee();
+    const marketingBalanceBefore = await ae.balanceOf(marketingFundAddr);
+    const deadBalanceBefore = await ae.balanceOf(deadAddr);
 
     console.log(`\n卖出前状态:`);
     console.log(`  AE 余额: ${formatToken(aeBefore, 18, "AE")}`);
@@ -116,7 +118,14 @@ async function main() {
     const sellPath = [AE_ADDRESS, USDX_ADDRESS];
     const amountsOut = await router.getAmountsOut(sellAmount, sellPath);
     const expectedUSDX = amountsOut[1];
+    // 计算扣除 3% 卖出税后的预期（1.5% 营销 + 1.5% 销毁）
+    const sellFeeRate = 300n; // 3% = 300 basis points
+    const basisPoints = 10000n;
+    const netSellAmount = sellAmount * (basisPoints - sellFeeRate) / basisPoints;
+    const amountsOutAfterFee = await router.getAmountsOut(netSellAmount, sellPath);
+    const expectedUSDXAfterFee = amountsOutAfterFee[1];
     console.log(`\n预期获得 (不含费用): ${formatToken(expectedUSDX, 18, "USDX")}`);
+    console.log(`预期获得 (扣除3%卖出税): ${formatToken(expectedUSDXAfterFee, 18, "USDX")}`);
 
     // 授权 Router
     console.log(`\n授权 Router 使用 AE...`);
@@ -138,13 +147,13 @@ async function main() {
     const usdxAfter = await usdx.balanceOf(sellerAddress);
     const aeAfter = await ae.balanceOf(sellerAddress);
     const investmentAfter = await ae.userInvestment(sellerAddress);
-    const marketingFeeAfter = await ae.amountMarketingFee();
-    const lpFeeAfter = await ae.amountLPFee();
+    const marketingBalanceAfter = await ae.balanceOf(marketingFundAddr);
+    const deadBalanceAfter = await ae.balanceOf(deadAddr);
 
     const aeSold = aeBefore - aeAfter;
     const usdxReceived = usdxAfter - usdxBefore;
-    const marketingFeeIncrease = marketingFeeAfter - marketingFeeBefore;
-    const lpFeeIncrease = lpFeeAfter - lpFeeBefore;
+    const marketingFeeActual = marketingBalanceAfter - marketingBalanceBefore;
+    const burnFeeActual = deadBalanceAfter - deadBalanceBefore;
 
     console.log(`\n交易成功! (Gas: ${receipt.gasUsed.toString()})`);
 
@@ -161,14 +170,14 @@ async function main() {
     }
 
     if (!isWhitelisted) {
-        console.log(`\n费用详情:`);
-        console.log(`  营销费用增加: ${formatToken(marketingFeeIncrease, 18, "AE")}`);
-        console.log(`  LP 费用增加: ${formatToken(lpFeeIncrease, 18, "AE")}`);
-        const totalFee = marketingFeeIncrease + lpFeeIncrease;
+        console.log(`\n费用详情 (卖出税 - 直接转账):`);
+        console.log(`  营销费用 (1.5%): ${formatToken(marketingFeeActual, 18, "AE")} → ${marketingFundAddr}`);
+        console.log(`  销毁费用 (1.5%): ${formatToken(burnFeeActual, 18, "AE")} → DEAD`);
+        const totalFee = marketingFeeActual + burnFeeActual;
         console.log(`  总卖出费用: ${formatToken(totalFee, 18, "AE")}`);
         if (sellAmount > 0n) {
             const feeRate = totalFee * 10000n / sellAmount;
-            console.log(`  费率: ${Number(feeRate) / 100}%`);
+            console.log(`  实际费率: ${Number(feeRate) / 100}%`);
         }
     }
 
