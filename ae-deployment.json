@@ -1,12 +1,12 @@
 {
   "network": "localhost",
-  "timestamp": "2026-05-03T11:54:37.289Z",
+  "timestamp": "2026-05-03T13:59:02.567Z",
   "contracts": {
-    "AE": "0x16a900ef3e45624cf7200FEC621ae8c177cba8b8",
-    "Staking": "0x907b0D0F52C021e1B24B397126Ce748bB142E61b",
-    "LiquidityStaking": "0xeF464f85Fbe9d8a9e20813aF6401f469568Aa60F",
-    "FundRelay": "0x953Bbcae48a8E814f47899c9890da1dB6C9FFc78",
-    "Pair": "0xA66607a5D00B44CcB765fCE8A59243D2bafbAb93"
+    "AE": "0x07A85cc70bc1F548C2E524AbFE77fff54dA2c2f2",
+    "Staking": "0x1161583C9E7A2986e886B0034a7D482A5fD88f01",
+    "LiquidityStaking": "0xFE32aD2B3c1BCcB9771D3a3AF49108f5877AbC25",
+    "FundRelay": "0xD5A62D8F8C86b7205b0acECa8040F32a18181fA1",
+    "Pair": "0xb62023881602e3cDd31370BdD568865737742EC9"
   },
   "addresses": {
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
