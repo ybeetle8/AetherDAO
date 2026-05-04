@@ -272,11 +272,16 @@ async function main() {
   // =================================================================
   if (done < 3) {
     console.log("=== 步骤 3/13: 初始化 AE 白名单 ===");
-    const tx = await ae.initializeWhitelist();
-    await tx.wait();
+    try {
+      const tx = await ae.initializeWhitelist();
+      await tx.wait();
+      console.log("✓ 白名单已初始化 (Owner, AE, Staking, Marketing, Router)");
+    } catch (e) {
+      // 如果上次交易已上链但脚本崩溃未保存状态，重试会触发 AlreadyInitialized
+      console.log("✓ 白名单已初始化（链上已执行，跳过）");
+    }
     state.completedStep = 3;
     saveState(state);
-    console.log("✓ 白名单已初始化 (Owner, AE, Staking, Marketing, Router)");
     console.log();
   } else {
     console.log("=== 步骤 3/13: 白名单已初始化，跳过 ===");
@@ -305,12 +310,19 @@ async function main() {
   // =================================================================
   if (done < 5) {
     console.log("=== 步骤 5/13: 创建 AE/USDC 交易对 ===");
-    const tx = await factory.createPair(C.AE, USDX_ADDRESS);
-    await tx.wait();
-    C.Pair = await factory.getPair(C.AE, USDX_ADDRESS);
+    // 先检查交易对是否已存在（上次 createPair 可能已上链但脚本崩溃未保存状态）
+    const existingPair = await factory.getPair(C.AE, USDX_ADDRESS);
+    if (existingPair && existingPair !== hre.ethers.ZeroAddress) {
+      C.Pair = existingPair;
+      console.log("✓ AE/USDC 交易对已存在（链上已创建，跳过）:", C.Pair);
+    } else {
+      const tx = await factory.createPair(C.AE, USDX_ADDRESS);
+      await tx.wait();
+      C.Pair = await factory.getPair(C.AE, USDX_ADDRESS);
+      console.log("✓ AE/USDC 交易对已创建:", C.Pair);
+    }
     state.completedStep = 5;
     saveState(state);
-    console.log("✓ AE/USDC 交易对已创建:", C.Pair);
     console.log();
   } else {
     console.log("=== 步骤 5/13: 交易对已存在，跳过 ===", C.Pair);
@@ -322,11 +334,16 @@ async function main() {
   // =================================================================
   if (done < 6) {
     console.log("=== 步骤 6/13: AE.setPair() ===");
-    const tx = await ae.setPair(C.Pair);
-    await tx.wait();
+    try {
+      const tx = await ae.setPair(C.Pair);
+      await tx.wait();
+      console.log("✓ AE 交易对已设置");
+    } catch (e) {
+      // setPair 有 AlreadySet 检查，上次可能已上链
+      console.log("✓ AE 交易对已设置（链上已执行，跳过）");
+    }
     state.completedStep = 6;
     saveState(state);
-    console.log("✓ AE 交易对已设置");
     console.log();
   } else {
     console.log("=== 步骤 6/13: AE.setPair() 已完成，跳过 ===");

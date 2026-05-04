@@ -6,6 +6,7 @@
  *
  * 用法：
  *   npx hardhat run scripts/importReferralData.js --network localhost
+ *   npx hardhat run scripts/importReferralData.js --network bsc
  */
 
 const hre = require("hardhat");
@@ -17,8 +18,11 @@ const path = require("path");
 // 配置
 // =========================================================================
 
-// 部署信息
-const deployment = require("../ae-deployment.json");
+// 部署信息（根据网络选择配置文件）
+const deploymentFile = hre.network.name === "bsc"
+  ? "../ae-mainnet-deployment.json"
+  : "../ae-deployment.json";
+const deployment = require(deploymentFile);
 const STAKING_ADDRESS = deployment.contracts.Staking;
 
 // 导入数据文件
