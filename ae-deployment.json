@@ -1,25 +1,25 @@
 {
   "network": "localhost",
-  "timestamp": "2026-05-03T13:59:02.567Z",
+  "timestamp": "2026-05-04T08:05:42.139Z",
   "contracts": {
-    "AE": "0x07A85cc70bc1F548C2E524AbFE77fff54dA2c2f2",
-    "Staking": "0x1161583C9E7A2986e886B0034a7D482A5fD88f01",
-    "LiquidityStaking": "0xFE32aD2B3c1BCcB9771D3a3AF49108f5877AbC25",
-    "FundRelay": "0xD5A62D8F8C86b7205b0acECa8040F32a18181fA1",
-    "Pair": "0xb62023881602e3cDd31370BdD568865737742EC9"
+    "AE": "0x2FE09E2f6fe5D7270749b191ddE88Fb096A614A0",
+    "Staking": "0xaA29E574eacdb6f0d3762185969A39E08ba069cF",
+    "LiquidityStaking": "0x0fe9a74875B24f4B7926D8F7FFDb8885569F4570",
+    "FundRelay": "0x88A41C238d8dE404ceC1744a203b3D3CD01BAEef",
+    "Pair": "0xF9edE7b13f9a005E69DDc32cC71609511205df69"
   },
   "addresses": {
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "marketingAddress": "0x1234567890123456789012345678901234567890",
-    "rootAddress": "0x2345678901234567890123456789012345678901",
-    "feeRecipient": "0x0000000000000000000000000000000000000001",
+    "marketingAddress": "0xdCd2143A66224a0C10C3A8b37b22b825Ca841ba4",
+    "rootAddress": "0xF4d1cD67cD570aE5e78ae89Bf664A299DeEdEFC7",
+    "feeRecipient": "0x04D9ac81c077ACaC42fe6134854Fe1fF8bDa1D83",
     "buyTaxNodeRewardAddress": "0x4ecc22c6de06d87380d50df56a3a5f718efdfe50",
     "buyTaxCommunityRewardAddress": "0x295d1ea71f5a1c8914ca2fbc0ad6f5557154e836",
-    "marketingFundAddress": "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17",
+    "marketingFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
     "weeklyTop15RewardAddress": "0x234121c1b952728b0f12b61fb7c26d234f5c57d4",
-    "crossChainReserveAddress": "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB",
-    "educationFundAddress": "0x2DC1e6D6Ae7b8Be231c54f0de2Ede2973550fBBa",
-    "nodeRewardAddress": "0x8234567890123456789012345678901234567890"
+    "crossChainReserveAddress": "0x62C041d9Fa400BA7A3717460f9f350bd77f0571D",
+    "educationFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
+    "nodeRewardAddress": "0xD66ffdf40b7ca68a28C39026726D818cD3daBE32"
   },
   "tokenomics": {
     "totalSupply": "100000000.0",

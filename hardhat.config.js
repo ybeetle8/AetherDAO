@@ -73,14 +73,15 @@ module.exports = {
       }
     },
 
-    localhost: {  
+    localhost: {
       url: "http://47.109.157.92:8545",
       //url: "http://127.0.0.1:8545",
       //url: "https://bsc.ai-hello.cn/",
       chainId: 10056,
       accounts: {
         mnemonic: "test test test test test test test test test test test junk"
-      }
+      },
+      timeout: 120000, // 2分钟超时
     },
     bsc: {
       url: process.env.BSC_RPC_URL || "https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/",

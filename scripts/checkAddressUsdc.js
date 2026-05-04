@@ -6,18 +6,20 @@ const USDC_ADDRESS = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 const AE_ADDRESS = deployment.contracts.AE;
 
 // token: "USDC" | "AE" | "BOTH"
+const config = require("../ae-deployment-config.json");
+
 const ADDRESS_LIST = [
-  { name: "部署者", address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", token: "BOTH" },
-  { name: "营销地址", address: "0x1234567890123456789012345678901234567890", token: "USDC" },
-  { name: "根地址", address: "0x2345678901234567890123456789012345678901", token: "USDC" },
-  { name: "手续费接收地址", address: "0x0000000000000000000000000000000000000001", token: "USDC" },
-  { name: "买入税节点奖励地址", address: "0x06Ba6DA5d1942DA184ad3E521bC51dfF32D721d9", token: "AE" },
-  { name: "买入税社区奖励地址", address: "0xeE1285c96E77f2E8CB9C38b66A0BB51b2fCE5537", token: "AE" },
-  { name: "营销基金地址", address: "0x498B497fDAEf221dFC6e4Ea6183aEFA9e9b63D17", token: "AE" },
-  { name: "周Top15奖励地址", address: "0x82B3B6a20d88d2d8B607B64876885259544DF591", token: "USDC" },
-  { name: "跨链储备地址", address: "0x6bdD1F916C1bf45D62B7f8282fB7A69302C785bB", token: "AE" },
-  { name: "教育基金地址", address: "0x2DC1e6D6Ae7b8Be231c54f0de2Ede2973550fBBa", token: "USDC" },
-  { name: "节点奖励地址", address: "0x8234567890123456789012345678901234567890", token: "AE" },
+  { name: "部署者", engName: "deployer", address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", token: "BOTH" },
+  { name: "营销地址", engName: "marketingAddress", address: config.addresses.marketingAddress, token: "USDC" },
+  { name: "根地址", engName: "rootAddress", address: config.addresses.rootAddress, token: "USDC" },
+  { name: "手续费接收地址", engName: "feeRecipient", address: config.addresses.feeRecipient, token: "USDC" },
+  { name: "买入税节点奖励地址", engName: "buyTaxNodeRewardAddress", address: config.addresses.buyTaxNodeRewardAddress, token: "AE" },
+  { name: "买入税社区奖励地址", engName: "buyTaxCommunityRewardAddress", address: config.addresses.buyTaxCommunityRewardAddress, token: "AE" },
+  { name: "营销基金地址", engName: "marketingFundAddress", address: config.addresses.marketingFundAddress, token: "AE" },
+  { name: "周Top15奖励地址", engName: "weeklyTop15RewardAddress", address: config.addresses.weeklyTop15RewardAddress, token: "USDC" },
+  { name: "跨链储备地址", engName: "crossChainReserveAddress", address: config.addresses.crossChainReserveAddress, token: "AE" },
+  { name: "教育基金地址", engName: "educationFundAddress", address: config.addresses.educationFundAddress, token: "USDC" },
+  { name: "节点奖励地址", engName: "nodeRewardAllocationAddress", address: config.addresses.nodeRewardAllocationAddress, token: "AE" },
 ];
 
 async function main() {
@@ -49,11 +51,11 @@ async function main() {
       parts.push(`${ethers.formatEther(aeBalance)} AE`);
     }
 
-    console.log(`${item.name.padEnd(16)} | ${item.address} | ${parts.join(" | ")}`);
+    console.log(`${item.name.padEnd(16)} | ${item.engName.padEnd(30)} | ${item.address} | ${parts.join(" | ")}`);
   }
 
   console.log("-".repeat(90));
-  console.log(`${"合计".padEnd(16)} | ${" ".repeat(42)} | ${ethers.formatEther(totalUsdc)} USDC | ${ethers.formatEther(totalAe)} AE`);
+  console.log(`${"合计".padEnd(16)} | ${" ".repeat(30)} | ${" ".repeat(42)} | ${ethers.formatEther(totalUsdc)} USDC | ${ethers.formatEther(totalAe)} AE`);
   console.log("=".repeat(90));
 }
 
