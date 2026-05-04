@@ -102,8 +102,8 @@ abstract contract StakingBase is Ownable, IStaking {
 
     uint256 internal constant REWARD_WITHHOLD_RATE = 40;
 
-    // Daily network stake limit: 50,000 USDX
-    uint256 internal constant DAILY_NETWORK_STAKE_LIMIT = 50_000 ether;
+    // Daily network stake limit: 30,000 USDX
+    uint256 internal constant DAILY_NETWORK_STAKE_LIMIT = 30_000 ether;
     // Reset hour: UTC 06:00 (= Beijing time 14:00)
     uint256 internal constant DAILY_RESET_HOUR_UTC = 6;
     uint256 internal constant SECONDS_PER_DAY = 86400;
