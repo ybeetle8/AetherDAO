@@ -74,6 +74,7 @@ function saveState(state) {
 // 地址校验：确保所有地址已替换为真实地址
 // =====================================================================
 function validateAddresses() {
+  const validAddress = /^0x[0-9a-fA-F]{40}$/;
   const placeholder = /^0x0{39}[0-9a-fA-F]$/;
   const addressEntries = [
     ["marketingAddress", MARKETING_ADDRESS],
@@ -90,7 +91,9 @@ function validateAddresses() {
 
   const errors = [];
   for (const [name, addr] of addressEntries) {
-    if (!addr || addr === hre.ethers.ZeroAddress || placeholder.test(addr)) {
+    if (!addr || !validAddress.test(addr)) {
+      errors.push(`  ✗ ${name} = ${addr || "(空)"} (不是合法的以太坊地址)`);
+    } else if (addr === hre.ethers.ZeroAddress || placeholder.test(addr)) {
       errors.push(`  ✗ ${name} = ${addr} (占位地址，请替换为真实地址)`);
     }
   }
@@ -102,6 +105,25 @@ function validateAddresses() {
     errors.forEach((e) => console.error(e));
     console.error("\n请修改 ae-mainnet-config.json 后重新运行。\n");
     process.exit(1);
+  }
+
+  // 检查重复地址（不同用途的地址不应相同）
+  const addrMap = {};
+  const duplicates = [];
+  for (const [name, addr] of addressEntries) {
+    if (addrMap[addr.toLowerCase()]) {
+      duplicates.push(`  ⚠ ${name} 与 ${addrMap[addr.toLowerCase()]} 使用了相同地址: ${addr}`);
+    } else {
+      addrMap[addr.toLowerCase()] = name;
+    }
+  }
+
+  if (duplicates.length > 0) {
+    console.warn("\n╔══════════════════════════════════════════════════════╗");
+    console.warn("║      ⚠️  检测到重复地址，请确认是否有意为之：        ║");
+    console.warn("╚══════════════════════════════════════════════════════╝\n");
+    duplicates.forEach((d) => console.warn(d));
+    console.warn();
   }
 
   console.log("✓ 所有配置地址校验通过\n");

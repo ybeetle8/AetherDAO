@@ -1,39 +1,19 @@
 {
-  "network": "bsc",
+  "network": "localhost",
   "addresses": {
     "usdx": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     "pancakeRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
     "pancakeFactory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
-
-    "_comment_marketing": "【部署前替换】营销地址 - AE合约 constructor (immutable) + LiquidityStaking constructor",
-    "marketingAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_root": "【部署前替换】推荐系统根节点 - Staking constructor (immutable, 不可修改)",
-    "rootAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_fee": "【部署前替换】质押手续费接收地址 - Staking constructor (immutable)",
-    "feeRecipient": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_buyTaxNode": "【部署前替换】买入税节点奖励地址 - AE constructor (immutable)",
-    "buyTaxNodeRewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_buyTaxCommunity": "【部署前替换】买入税社区奖励地址 - AE constructor (immutable)",
-    "buyTaxCommunityRewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_marketingFund": "【部署前替换】营销基金地址 - AE constructor (immutable)",
-    "marketingFundAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_weekly": "【部署前替换】每周Top15奖励地址 - AE constructor (immutable)",
-    "weeklyTop15RewardAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_education": "【部署前替换】教育基金地址 - Staking constructor (immutable)",
-    "educationFundAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_nodeReward": "【部署前替换】节点奖励分配地址 - 接收 18,740,000 AE",
-    "nodeRewardAllocationAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39",
-
-    "_comment_crossChain": "【部署前替换】跨链储备地址 - 接收 1,260,000 AE",
-    "crossChainReserveAddress": "0x88EaFB11f6126B213fE4b36C6F52f19eEDBd8b39"
+    "marketingAddress": "0xdCd2143A66224a0C10C3A8b37b22b825Ca841ba4",
+    "rootAddress": "0xF4d1cD67cD570aE5e78ae89Bf664A299DeEdEFC7",
+    "feeRecipient": "0x04D9ac81c077ACaC42fe6134854Fe1fF8bDa1D83",
+    "buyTaxNodeRewardAddress": "0x8940c1fc41aaa93eb0486b6af7a211d7656a5dfa",
+    "buyTaxCommunityRewardAddress": "0xbc68cfc19f77cab2511a886557aca6d156a5d763",
+    "marketingFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
+    "weeklyTop15RewardAddress": "0xa9fa34f77448d4748b4b868aeaeddfc07af3958b",
+    "crossChainReserveAddress": "0x62C041d9Fa400BA7A3717460f9f350bd77f0571D",
+    "educationFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
+    "nodeRewardAllocationAddress": "0xD66ffdf40b7ca68a28C39026726D818cD3daBE32"
   },
   "tokenomics": {
     "totalSupply": "100000000",
