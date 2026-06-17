@@ -1,13 +1,12 @@
 /**
  * 测试脚本：模拟 emergencyWithdrawAE 操作
- * 在本地 fork BSC 主网环境中测试，不会影响主网
+ * 在本地 fork BSC 主网最新区块环境中测试，不会影响主网
  *
- * 前置条件：
- *   1. 启动本地 fork 节点：
- *      npx hardhat node --hostname 0.0.0.0 --port 8545 --fork https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/
+ * 执行命令（无需启动额外节点）：
+ *   npx hardhat run scripts/emergencyWithdrawAE-test.js
  *
- *   2. 执行测试脚本：
- *      npx hardhat run scripts/emergencyWithdrawAE-test.js --network localhost
+ * 注意：hardhat.config.js 中 fork 的 blockNumber 太旧（64340000），
+ *       合约在那之后才部署，所以本脚本自行 fork 最新区块。
  */
 
 const hre = require("hardhat");
@@ -23,6 +22,8 @@ const OWNER_ADDRESS = "0xB138e42B76ad0E6F21E715578F34F2Cf2285eE76";
 // AE 接收地址
 const RECEIVER = "0xB138e42B76ad0E6F21E715578F34F2Cf2285eE76";
 
+const BSC_RPC = "https://bsc.rpc.pinax.network/v1/311e9e281c8e2995ddf582f2bb074d0f132a8e6fd87eb785/";
+
 async function main() {
   const provider = hre.ethers.provider;
   const fmt = (v, d = 18) => Number(hre.ethers.formatUnits(v, d));
@@ -31,8 +32,18 @@ async function main() {
   console.log("║   测试: emergencyWithdrawAE（本地 fork，不影响主网）    ║");
   console.log("╚══════════════════════════════════════════════════════════╝\n");
 
-  // Step 1: 用 hardhat_impersonateAccount 模拟 Owner 身份
-  console.log("=== Step 1: 模拟 Owner 身份 ===\n");
+  // Step 1: 重置 fork 到最新区块（绕过 hardhat.config.js 中的旧 blockNumber）
+  console.log("=== Step 1: Fork BSC 最新区块 ===\n");
+  await provider.send("hardhat_reset", [{
+    forking: {
+      jsonRpcUrl: BSC_RPC,
+    }
+  }]);
+  const blockNum = await provider.getBlockNumber();
+  console.log("  已 fork 到最新区块:", blockNum);
+
+  // Step 2: 模拟 Owner 身份
+  console.log("\n=== Step 2: 模拟 Owner 身份 ===\n");
   await provider.send("hardhat_impersonateAccount", [OWNER_ADDRESS]);
 
   // 给 Owner 一些 BNB 用于 gas
@@ -45,8 +56,8 @@ async function main() {
 
   const ownerSigner = await hre.ethers.getSigner(OWNER_ADDRESS);
 
-  // Step 2: 连接合约
-  console.log("\n=== Step 2: 连接合约 ===\n");
+  // Step 3: 连接合约
+  console.log("\n=== Step 3: 连接合约 ===\n");
 
   const stakingABI = [
     "function emergencyWithdrawAE(address to, uint256 _amount) external",
@@ -76,21 +87,22 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 3: 查询提取前余额
-  console.log("\n=== Step 3: 提取前状态 ===\n");
+  // Step 4: 查询提取前余额
+  console.log("\n=== Step 4: 提取前状态 ===\n");
 
   const stakingAEBefore = await ae.balanceOf(STAKING_ADDRESS);
   const stakingUSDXBefore = await usdx.balanceOf(STAKING_ADDRESS);
   const receiverAEBefore = await ae.balanceOf(RECEIVER);
-  const [tvl] = await staking.getGlobalStats();
+  const [tvl, , , stakerCount] = await staking.getGlobalStats();
 
-  console.log("  Staking 合约 AE 余额:   ", fmt(stakingAEBefore).toLocaleString(), "AE");
+  console.log("  Staking 合约 AE 余额:    ", fmt(stakingAEBefore).toLocaleString(), "AE");
   console.log("  Staking 合约 USDC 余额:  ", fmt(stakingUSDXBefore).toLocaleString(), "USDC");
   console.log("  接收地址 AE 余额:        ", fmt(receiverAEBefore).toLocaleString(), "AE");
   console.log("  当前 TVL（用户质押本金）: ", fmt(tvl).toLocaleString(), "USDC");
+  console.log("  当前质押人数:             ", stakerCount.toString(), "人");
 
-  // Step 4: 执行 emergencyWithdrawAE — 提取全部 AE
-  console.log("\n=== Step 4: 执行 emergencyWithdrawAE ===\n");
+  // Step 5: 执行 emergencyWithdrawAE — 提取全部 AE
+  console.log("\n=== Step 5: 执行 emergencyWithdrawAE ===\n");
 
   const withdrawAmount = stakingAEBefore;
   console.log("  提取数量:  ", fmt(withdrawAmount).toLocaleString(), "AE");
@@ -107,8 +119,8 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 5: 查询提取后余额
-  console.log("\n=== Step 5: 提取后状态 ===\n");
+  // Step 6: 查询提取后余额
+  console.log("\n=== Step 6: 提取后状态 ===\n");
 
   const stakingAEAfter = await ae.balanceOf(STAKING_ADDRESS);
   const receiverAEAfter = await ae.balanceOf(RECEIVER);
@@ -117,8 +129,8 @@ async function main() {
   console.log("  接收地址 AE 余额:      ", fmt(receiverAEAfter).toLocaleString(), "AE");
   console.log("  实际转出:              ", fmt(receiverAEAfter - receiverAEBefore).toLocaleString(), "AE");
 
-  // Step 6: 也测试 emergencyWithdrawUSDX
-  console.log("\n=== Step 6: 测试 emergencyWithdrawUSDX ===\n");
+  // Step 7: 也测试 emergencyWithdrawUSDX
+  console.log("\n=== Step 7: 测试 emergencyWithdrawUSDX ===\n");
 
   if (stakingUSDXBefore > 0n) {
     const receiverUSDXBefore = await usdx.balanceOf(RECEIVER);
@@ -136,7 +148,7 @@ async function main() {
     console.log("  Staking 合约无 USDC 余额，跳过");
   }
 
-  // Step 7: 总结
+  // Step 8: 总结
   console.log("\n╔══════════════════════════════════════════════════════════╗");
   console.log("║                    测试结果总结                         ║");
   console.log("╠══════════════════════════════════════════════════════════╣");
