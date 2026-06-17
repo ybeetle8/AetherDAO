@@ -1,0 +1,36 @@
+{
+  "completedStep": 14,
+  "contracts": {
+    "Staking": "0xf812E0A65d01FFE2b3916F483B1BDe69d38829B3",
+    "AE": "0x01edd7445DF0e9c2064c77Df150BE9FC793C828b",
+    "Pair": "0x526bb930F25C8976290c01CEF775249373343132",
+    "LiquidityStaking": "0xAc846586b990dADD1d15Fe62E17256DDc3d1F955",
+    "FundRelay": "0x51c3b399B13441f855A3C93493fEF9fc07189Ed3"
+  },
+  "timestamp": "2026-05-04T10:24:00.155Z",
+  "network": "bsc",
+  "chainId": 56,
+  "deployer": "0xB138e42B76ad0E6F21E715578F34F2Cf2285eE76",
+  "pancakeSwap": {
+    "router": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+    "factory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+  },
+  "configAddresses": {
+    "marketingAddress": "0xdCd2143A66224a0C10C3A8b37b22b825Ca841ba4",
+    "rootAddress": "0xF4d1cD67cD570aE5e78ae89Bf664A299DeEdEFC7",
+    "feeRecipient": "0x04D9ac81c077ACaC42fe6134854Fe1fF8bDa1D83",
+    "buyTaxNodeRewardAddress": "0x8940c1fc41aaa93eb0486b6af7a211d7656a5dfa",
+    "buyTaxCommunityRewardAddress": "0xbc68cfc19f77cab2511a886557aca6d156a5d763",
+    "marketingFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
+    "weeklyTop15RewardAddress": "0xa9fa34f77448d4748b4b868aeaeddfc07af3958b",
+    "educationFundAddress": "0x0C1520C4BBFB7A69B505bDfd303848815864BDBD",
+    "nodeRewardAllocationAddress": "0xD66ffdf40b7ca68a28C39026726D818cD3daBE32",
+    "crossChainReserveAddress": "0x62C041d9Fa400BA7A3717460f9f350bd77f0571D"
+  },
+  "balances": {
+    "deployer": "60000000.0",
+    "staking": "20000000.0",
+    "nodeReward": "18740000.0",
+    "crossChainReserve": "1260000.0"
+  }
+}
